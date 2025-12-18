@@ -1,0 +1,127 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e7]: RobotFlow
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - button "Home" [ref=e10]:
+          - img [ref=e11]
+          - text: Home
+        - button "Monitoring" [ref=e13]:
+          - img [ref=e14]
+          - text: Monitoring
+      - generic [ref=e16]:
+        - button "Setup New Robot" [ref=e17]:
+          - img [ref=e18]
+          - text: Setup New Robot
+        - button "Training Studio" [ref=e20]:
+          - img [ref=e21]
+          - text: Training Studio
+        - button "Assembly Lines" [ref=e23]:
+          - img [ref=e24]
+          - text: Assembly Lines
+        - button "System Settings" [ref=e26]:
+          - img [ref=e27]
+          - text: System Settings
+    - generic [ref=e30]:
+      - generic [ref=e31]: Admin
+      - img [ref=e32] [cursor=pointer]
+  - main [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]: RobotFlow
+      - button "Sign Out" [ref=e38]
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - heading "New Robot Setup" [level=2] [ref=e42]
+        - paragraph [ref=e43]: Configure your leader/follower arms and perception system
+      - generic [ref=e44]:
+        - generic [ref=e46]: "1"
+        - generic [ref=e49]: "2"
+        - generic [ref=e52]: "3"
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - heading "Hardware" [level=3] [ref=e57]
+            - paragraph [ref=e58]: Attach leader and follower arms
+          - button "Scan Ports" [ref=e60]
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - heading "Connected Devices" [level=4] [ref=e63]
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]:
+                  - generic [ref=e69]:
+                    - generic [ref=e70]: Acme Robotics
+                    - generic [ref=e71]: "Port: /dev/ttyUSB0"
+                  - generic [ref=e72]: "Serial: ACM1234"
+                  - generic [ref=e73]: "Pnp ID: usb-FTDI"
+                  - generic [ref=e74]: "Product ID: 0x6001 • Vendor ID: 0x0403"
+                - generic [ref=e75]:
+                  - generic [ref=e76]:
+                    - radio "Use as Follower" [checked] [active] [ref=e77]
+                    - generic [ref=e78]: Use as Follower
+                  - generic [ref=e79]:
+                    - radio "Use as Leader" [disabled] [ref=e80]
+                    - generic [ref=e81]: Use as Leader
+                  - generic [ref=e82]:
+                    - radio "Don't use" [disabled] [ref=e83]
+                    - generic [ref=e84]: Don't use
+              - generic [ref=e85]:
+                - generic [ref=e86]:
+                  - generic [ref=e87]:
+                    - generic [ref=e88]: RobCo
+                    - generic [ref=e89]: "Port: /dev/ttyUSB1"
+                  - generic [ref=e90]: "Serial: RBX-999"
+                  - generic [ref=e91]: "Pnp ID: usb-CH340"
+                  - generic [ref=e92]: "Product ID: 0x2341 • Vendor ID: 0x1A86"
+                - generic [ref=e93]:
+                  - generic [ref=e94]:
+                    - radio "Use as Follower" [ref=e95]
+                    - generic [ref=e96]: Use as Follower
+                  - generic [ref=e97]:
+                    - radio "Use as Leader" [ref=e98]
+                    - generic [ref=e99]: Use as Leader
+                  - generic [ref=e100]:
+                    - radio "Don't use" [checked] [ref=e101]
+                    - generic [ref=e102]: Don't use
+          - generic [ref=e103]:
+            - heading "Calibration Status" [level=4] [ref=e104]
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - generic [ref=e107]: Leader Arm
+                - generic [ref=e108]: Calibrated
+              - generic [ref=e109]:
+                - generic [ref=e110]: Follower Arm
+                - generic [ref=e111]: Not Calibrated
+              - generic [ref=e112]:
+                - generic [ref=e113]:
+                  - generic [ref=e114]: Python Plugins
+                  - button "Scan Python Plugins" [ref=e115]
+                - generic [ref=e116]:
+                  - generic [ref=e117]:
+                    - text: Robot Class
+                    - generic [ref=e119]:
+                      - combobox [ref=e120]:
+                        - option "Select robot" [selected]
+                      - generic:
+                        - img
+                  - generic [ref=e121]:
+                    - text: Teleoperator Class
+                    - generic [ref=e123]:
+                      - combobox [ref=e124]:
+                        - option "Select teleoperator" [selected]
+                      - generic:
+                        - img
+                - generic [ref=e125]:
+                  - generic [ref=e126]:
+                    - generic [ref=e127]: Python Environment
+                    - button "Detect Anaconda" [ref=e128]
+                  - generic [ref=e129]: Click "Detect Anaconda" to look for a local Anaconda installation.
+      - generic [ref=e130]:
+        - button "Back" [disabled] [ref=e131]
+        - button "Next Step" [ref=e132]:
+          - text: Next Step
+          - img [ref=e133]
+```

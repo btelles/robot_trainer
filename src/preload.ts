@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadSystemSettings: () => ipcRenderer.invoke('load-system-settings'),
   listPythonPlugins: (options?: { pythonPath?: string; robots?: string[]; teleops?: string[] }) => ipcRenderer.invoke('list-python-plugins', options),
   checkAnaconda: () => ipcRenderer.invoke('check-anaconda'),
+  createAnacondaEnv: (name: string) => ipcRenderer.invoke('create-anaconda-env', name),
+  saveRobotConfig: (config: any) => ipcRenderer.invoke('save-robot-config', config),
 });

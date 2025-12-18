@@ -28,7 +28,7 @@ const setupIpcHandlers = () => {
           vendorId: port.vendorId || 'N/A',
           pnpId: port.pnpId || 'N/A'
         }
-      } );
+      });
     } catch (error) {
       console.error('Error scanning Serial ports:', error);
       throw error;
@@ -180,6 +180,77 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Error checking Anaconda envs:', error);
       return { found: false, path: null, envs: [], platform: process.platform, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('create-anaconda-env', async (_event, name: string) => {
+    try {
+      const { spawn } = await import('node:child_process');
+      const home = app.getPath('home') || os.homedir();
+
+      // Candidate conda executables to try (PATH first, then common install locations)
+      const candidates: string[] = [];
+      // use plain 'conda' to allow PATH resolution
+      candidates.push('conda');
+
+      if (process.platform === 'win32') {
+        candidates.push(path.join(home, 'Anaconda3', 'condabin', 'conda.bat'));
+        candidates.push(path.join(home, 'Anaconda3', 'Scripts', 'conda.exe'));
+        candidates.push(path.join(home, 'Miniconda3', 'condabin', 'conda.bat'));
+        candidates.push(path.join(home, 'Miniconda3', 'Scripts', 'conda.exe'));
+      } else {
+        candidates.push(path.join(home, 'miniconda3', 'bin', 'conda'));
+        candidates.push(path.join(home, 'anaconda3', 'bin', 'conda'));
+        candidates.push('/opt/miniconda3/bin/conda');
+        candidates.push('/opt/anaconda3/bin/conda');
+      }
+
+      // Choose the first candidate that exists (or fallback to 'conda')
+      let chosen: string | null = null;
+      for (const c of candidates) {
+        if (c === 'conda') { chosen = c; break; }
+        try {
+          const st = await fs.stat(c);
+          if (st && st.isFile()) { chosen = c; break; }
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (!chosen) chosen = 'conda';
+
+      const args = ['create', '-n', name, '--yes'];
+
+      return await new Promise((resolve) => {
+        const child = spawn(chosen!, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', (chunk) => out += chunk.toString());
+        child.stderr.on('data', (chunk) => err += chunk.toString());
+        child.on('close', (code) => {
+          const success = code === 0;
+          resolve({ success, code: code ?? -1, output: out + (err ? `\n${err}` : '') });
+        });
+        child.on('error', (e) => {
+          resolve({ success: false, code: -1, output: String(e) });
+        });
+      });
+    } catch (error: any) {
+      console.error('Error creating conda env:', error);
+      return { success: false, code: -1, output: String(error) };
+    }
+  });
+
+  ipcMain.handle('save-robot-config', async (_event, config: any) => {
+    try {
+      const home = app.getPath('home');
+      const dir = path.join(home, 'robot_trainer');
+      const outPath = path.join(dir, 'config.json');
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(outPath, JSON.stringify(config, null, 2), 'utf8');
+      return { ok: true, path: outPath };
+    } catch (error) {
+      console.error('Error saving robot config:', error);
+      throw error;
     }
   });
 };

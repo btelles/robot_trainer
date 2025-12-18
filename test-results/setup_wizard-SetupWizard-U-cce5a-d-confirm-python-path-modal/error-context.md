@@ -1,0 +1,107 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e7]: RobotFlow
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - button "Home" [ref=e10]:
+          - img [ref=e11]
+          - text: Home
+        - button "Monitoring" [ref=e13]:
+          - img [ref=e14]
+          - text: Monitoring
+      - generic [ref=e16]:
+        - button "Setup New Robot" [ref=e17]:
+          - img [ref=e18]
+          - text: Setup New Robot
+        - button "Training Studio" [ref=e20]:
+          - img [ref=e21]
+          - text: Training Studio
+        - button "Assembly Lines" [ref=e23]:
+          - img [ref=e24]
+          - text: Assembly Lines
+        - button "System Settings" [ref=e26]:
+          - img [ref=e27]
+          - text: System Settings
+    - generic [ref=e30]:
+      - generic [ref=e31]: Admin
+      - img [ref=e32] [cursor=pointer]
+  - main [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]: RobotFlow
+      - button "Sign Out" [ref=e38]
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - heading "New Robot Setup" [level=2] [ref=e42]
+        - paragraph [ref=e43]: Configure your leader/follower arms and perception system
+      - generic [ref=e44]:
+        - generic [ref=e46]: "1"
+        - generic [ref=e49]: "2"
+        - generic [ref=e52]: "3"
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - heading "Hardware" [level=3] [ref=e57]
+            - paragraph [ref=e58]: Attach leader and follower arms
+          - button "Scan Ports" [ref=e60]
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - heading "Connected Devices" [level=4] [ref=e63]
+            - paragraph [ref=e65]: No Serial devices found. Click "Scan Ports" to search.
+          - generic [ref=e66]:
+            - heading "Calibration Status" [level=4] [ref=e67]
+            - generic [ref=e68]:
+              - generic [ref=e69]:
+                - generic [ref=e70]: Leader Arm
+                - generic [ref=e71]: Not Calibrated
+              - generic [ref=e72]:
+                - generic [ref=e73]: Follower Arm
+                - generic [ref=e74]: Not Calibrated
+              - generic [ref=e75]:
+                - generic [ref=e76]:
+                  - generic [ref=e77]: Python Plugins
+                  - button "Scan Python Plugins" [ref=e78]
+                - generic [ref=e79]:
+                  - generic [ref=e80]:
+                    - text: Robot Class
+                    - generic [ref=e82]:
+                      - combobox [ref=e83]:
+                        - option "Select robot" [selected]
+                      - generic:
+                        - img
+                  - generic [ref=e84]:
+                    - text: Teleoperator Class
+                    - generic [ref=e86]:
+                      - combobox [ref=e87]:
+                        - option "Select teleoperator" [selected]
+                      - generic:
+                        - img
+                - generic [ref=e88]:
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: Python Environment
+                    - button "Detect Anaconda" [ref=e91]
+                  - generic [ref=e92]:
+                    - generic [ref=e93]: "Detected Anaconda: /home/testuser/miniconda3/envs"
+                    - generic [ref=e95]:
+                      - radio "base /home/testuser/miniconda3/envs/base/bin/python" [checked] [ref=e96]
+                      - generic [ref=e97]: base
+                      - generic [ref=e98]: /home/testuser/miniconda3/envs/base/bin/python
+                    - generic [ref=e99]:
+                      - button "Use this environment" [ref=e100]
+                      - generic [ref=e101]: or
+                      - button "Point to custom Python" [ref=e102]
+      - generic [ref=e104]:
+        - heading "Confirm Python Path" [level=3] [ref=e105]
+        - paragraph [ref=e106]: Please confirm the Python executable that will be used by Robot Trainer.
+        - generic [ref=e107]: /home/testuser/miniconda3/envs/base/bin/python
+        - generic [ref=e108]:
+          - button "Cancel" [ref=e109]
+          - button "Confirm" [active] [ref=e110]
+      - generic [ref=e111]:
+        - button "Back" [disabled] [ref=e112]
+        - button "Next Step" [ref=e113]:
+          - text: Next Step
+          - img [ref=e114]
+```
