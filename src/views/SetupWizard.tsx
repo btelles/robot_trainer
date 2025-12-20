@@ -238,7 +238,7 @@ export const SetupWizard: React.FC = () => {
                     {serialPorts.length === 0 ? null : (
                       <div className="space-y-2">
                         {serialPorts.map((p, i) => (
-                          <div key={i} className="serial-port-card p-3 border rounded-md bg-gray-50 flex items-start gap-3">
+                          <div key={i} data-path={p.path}  className="serial-port-card p-3 border rounded-md bg-gray-50 flex items-start gap-3">
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <div className="font-medium text-sm">{p.manufacturer || 'Unknown Device'}</div>

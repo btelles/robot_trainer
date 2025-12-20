@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkAnaconda: () => ipcRenderer.invoke('check-anaconda'),
   createAnacondaEnv: (name: string) => ipcRenderer.invoke('create-anaconda-env', name),
   saveRobotConfig: (config: any) => ipcRenderer.invoke('save-robot-config', config),
+  onSystemSettingsChanged: (cb: (data: any) => void) => {
+    const listener = (_: any, data: any) => cb(data);
+    ipcRenderer.on('system-settings-changed', listener);
+    return () => ipcRenderer.removeListener('system-settings-changed', listener);
+  },
 });

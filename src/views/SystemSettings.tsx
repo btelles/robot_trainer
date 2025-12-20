@@ -29,12 +29,19 @@ const SystemSettings: React.FC = () => {
         const loaded = (window as any).electronAPI?.loadSystemSettings
           ? await (window as any).electronAPI.loadSystemSettings()
           : JSON.parse(localStorage.getItem('systemSettings') || 'null');
-        if (loaded) setSettings(loaded);
+        if (loaded && typeof loaded === 'object') setSettings(loaded as SystemSettingsShape);
       } catch (err) {
         // ignore
       }
     };
     load();
+    // subscribe to external changes
+    const unsub = (window as any).electronAPI?.onSystemSettingsChanged
+      ? (window as any).electronAPI.onSystemSettingsChanged((data: any) => {
+        if (data && typeof data === 'object') setSettings(data as SystemSettingsShape);
+      })
+      : null;
+    return () => { if (unsub) unsub(); };
   }, []);
 
   const update = (patch: Partial<SystemSettingsShape>) => {
@@ -65,7 +72,7 @@ const SystemSettings: React.FC = () => {
   };
 
   const addEnvVar = () => {
-    update({ envVars: [ ...(settings.envVars || []), { key: '', value: '' } ] });
+    update({ envVars: [...(settings.envVars || []), { key: '', value: '' }] });
   };
 
   const removeEnvVar = (idx: number) => {

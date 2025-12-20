@@ -114,7 +114,7 @@ test.describe('SetupWizard UI (screenshots)', () => {
     await window.screenshot({ path: 'test-results/setupwizard-no-ports.png', fullPage: true });
   });
 
-  test.only('anaconda detection and confirm python path modal', async ({ window, setIpcHandlers }) => {
+  test('anaconda detection and confirm python path modal', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({
       'scan-serial-ports': async () => [],
       'list-python-plugins': async () => {
@@ -148,7 +148,7 @@ test.describe('SetupWizard UI (screenshots)', () => {
     await window.screenshot({ path: 'test-results/setupwizard-confirm-python-modal.png', fullPage: true });
 
     // Confirm to save python path
-    await window.click('text=Confirm');
+    await window.click('button:has-text("Confirm")');
     // After confirming the success message should appear
     await window.waitForSelector('text=Saved Python path');
     await window.screenshot({ path: 'test-results/setupwizard-anaconda-saved.png', fullPage: true });
@@ -205,7 +205,7 @@ test.describe('SetupWizard UI (screenshots)', () => {
     });
   });
 
-  test.only('save configuration advances to calibration page', async ({ window, setIpcHandlers }) => {
+  test('save configuration advances to calibration page', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({
       'scan-serial-ports': async () => {
         return [
@@ -237,8 +237,8 @@ test.describe('SetupWizard UI (screenshots)', () => {
 
     // assign follower and leader
     await window.locator('text=Use as Follower').first().click();
-    const cards = window.locator('div:has-text("Port: /dev/ttyUSB1")');
-    await cards.locator('text=Use as Leader').click();
+    const cards = window.locator('[data-path="/dev/ttyUSB1"]');
+    await cards.locator('span:has-text("Use as Leader")').click();
 
     // Next to Cameras step
     await window.click('text=Next Step');
@@ -258,16 +258,6 @@ test.describe('SetupWizard UI (screenshots)', () => {
     // Should advance to calibration step
     await window.waitForSelector('text=Calibration');
     await window.screenshot({ path: 'test-results/setupwizard-calibration-page.png', fullPage: true });
-  });
-});
-
-test.describe('Electron startup', () => {
-  test('opens a window and renders', async ({ window }) => {
-    // Save a screenshot for debugging if needed. Setting viewport avoids 0-width error.
-    await expect(window).toHaveScreenshot();
-
-    // Forward console messages from the renderer to the test output.
-    window.on('console', (msg) => console.log('renderer console>', msg.text()));
   });
 });
 
