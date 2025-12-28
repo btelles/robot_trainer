@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SetupWizard from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
 import TrainingStudio from './views/TrainingStudio';
@@ -6,6 +6,8 @@ import AssemblyView from './views/AssemblyView';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
+import useUIStore from "./lib/uiStore";
+
 
 import { Home, Activity, Cpu, Robot, Zap, Layout, Settings } from './icons';
 import Button from './ui/Button';
@@ -21,18 +23,30 @@ const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; 
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const currentPage = useUIStore((s: any) => s.currentPage);
+  const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
+  const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
 
   React.useEffect(() => {
     const handler = (ev: Event) => {
       try {
         // @ts-ignore
         const detail = (ev as CustomEvent).detail;
-        if (typeof detail === 'string') setActiveTab(detail);
+        if (typeof detail === 'string') {
+          setActiveTab(detail);
+          setCurrentPage(detail);
+          setResourceManagerShowForm(false);
+        }
       } catch (e) { }
     };
     window.addEventListener('robottrainer:navigate', handler as EventListener);
     return () => window.removeEventListener('robottrainer:navigate', handler as EventListener);
-  }, []);
+  }, [setCurrentPage, setResourceManagerShowForm]);
+
+  // keep local activeTab in sync with store when other parts set currentPage
+  useEffect(() => {
+    if (currentPage && currentPage !== activeTab) setActiveTab(currentPage);
+  }, [currentPage]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -57,16 +71,16 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
-            <NavItem id="dashboard" icon={Home} label="Home" active={activeTab} onClick={setActiveTab} />
-            <NavItem id="monitoring" icon={Activity} label="Monitoring" active={activeTab} onClick={setActiveTab} />
+            <NavItem id="dashboard" icon={Home} label="Home" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem id="monitoring" icon={Activity} label="Monitoring" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
           </div>
 
           <div className="mb-8">
-            <NavItem id="robots" icon={Robot} label="Robots" active={activeTab} onClick={setActiveTab} />
-            <NavItem id="cameras" icon={Cpu} label="Cameras" active={activeTab} onClick={setActiveTab} />
-            <NavItem id="training" icon={Zap} label="Training Studio" active={activeTab} onClick={setActiveTab} />
-            <NavItem id="lines" icon={Layout} label="Assembly Lines" active={activeTab} onClick={setActiveTab} />
-            <NavItem id="system-settings" icon={Settings} label="System Settings" active={activeTab} onClick={setActiveTab} />
+            <NavItem id="robots" icon={Robot} label="Robots" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem id="cameras" icon={Cpu} label="Cameras" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem id="training" icon={Zap} label="Training Studio" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem id="lines" icon={Layout} label="Assembly Lines" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem id="system-settings" icon={Settings} label="System Settings" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
           </div>
         </div>
 
