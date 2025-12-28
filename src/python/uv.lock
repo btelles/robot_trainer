@@ -4359,6 +4359,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pymycobot"
+version = "4.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyserial" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/30/47/531fbc6d26815f4ea25a311e74e442e401e81f356a5924313a33162be204/pymycobot-4.0.3.tar.gz", hash = "sha256:ac2b6ac5937e51e769c376fa314c288e0ec3b5892f129de5fc8438157673502e", size = 221352, upload-time = "2025-11-06T10:19:06.273Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/df/30bfac340440f59c690286af1bfcd08a4f3545155caa94a29c543d4798ce/pymycobot-4.0.3-py3-none-any.whl", hash = "sha256:aabd06364fc4282cfec38a0fdc115cf71d5e884f548023cbfcacf0e058d092d6", size = 290949, upload-time = "2025-11-06T10:19:04.285Z" },
+]
+
+[[package]]
 name = "pyngrok"
 version = "7.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4583,7 +4595,9 @@ source = { virtual = "." }
 dependencies = [
     { name = "lerobot", extra = ["all"] },
     { name = "pyinstaller" },
+    { name = "pymycobot" },
     { name = "torch" },
+    { name = "xarm" },
 ]
 
 [package.dev-dependencies]
@@ -4595,7 +4609,9 @@ dev = [
 requires-dist = [
     { name = "lerobot", extras = ["all"], specifier = ">=0.3.2" },
     { name = "pyinstaller", specifier = ">=6.17.0" },
+    { name = "pymycobot", specifier = ">=4.0.3" },
     { name = "torch", specifier = ">=2.9.1" },
+    { name = "xarm", specifier = ">=0.0.4" },
 ]
 
 [package.metadata.requires-dev]
@@ -5883,6 +5899,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/01/3a/07cd60a9d26fe73efead61c7830af975dfdba8537632d410462672e4432b/wrapt-2.0.1-cp314-cp314t-win_amd64.whl", hash = "sha256:61c4956171c7434634401db448371277d07032a81cc21c599c22953374781395", size = 64038, upload-time = "2025-11-07T00:45:00.948Z" },
     { url = "https://files.pythonhosted.org/packages/41/99/8a06b8e17dddbf321325ae4eb12465804120f699cd1b8a355718300c62da/wrapt-2.0.1-cp314-cp314t-win_arm64.whl", hash = "sha256:35cdbd478607036fee40273be8ed54a451f5f23121bd9d4be515158f9498f7ad", size = 60634, upload-time = "2025-11-07T00:45:02.087Z" },
     { url = "https://files.pythonhosted.org/packages/15/d1/b51471c11592ff9c012bd3e2f7334a6ff2f42a7aed2caffcf0bdddc9cb89/wrapt-2.0.1-py3-none-any.whl", hash = "sha256:4d2ce1bf1a48c5277d7969259232b57645aae5686dba1eaeade39442277afbca", size = 44046, upload-time = "2025-11-07T00:45:32.116Z" },
+]
+
+[[package]]
+name = "xarm"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/fc/db5aa4d9fc28e5a73ac9cfcbe3986ac2e09ed41b3ebace827c6670da416c/xarm-0.0.4.tar.gz", hash = "sha256:8b39f94ead8d775e56e7a24bd7b964b0a31054f74c4c7a11504926241b3cc443", size = 11919, upload-time = "2021-04-09T18:19:04.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/41/4697edf80cd77510f8e62bf8466e7826cf7a6e2da55ccaf488037c338273/xarm-0.0.4-py3-none-any.whl", hash = "sha256:aad85ab2900e9efd7c583317ce57f1a62e6cc1d5a62035f067a13bd52fd21680", size = 9159, upload-time = "2021-04-09T18:19:03.442Z" },
 ]
 
 [[package]]

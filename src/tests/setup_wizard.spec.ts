@@ -12,8 +12,12 @@ test.describe('SetupWizard UI (screenshots)', () => {
       }
     });
 
-    // Open Setup view
-    await window.click('text=Setup New Robot');
+    // Open Setup view via Robots -> Add -> Create
+    await window.click('text=Robots');
+    await window.waitForSelector('text=Robots');
+    await window.click('text=Add Robot');
+    await window.click('text=Create');
+    await window.waitForSelector('text=Setup New Robot');
 
     // Take initial screenshot (no ports yet)
     await window.screenshot({ path: 'test-results/setupwizard-step1-initial.png', fullPage: true });
@@ -42,7 +46,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
       }
     });
 
-    await window.click('text=Setup New Robot');
+    await window.click('text=Robots');
+    await window.waitForSelector('text=Robots');
+    await window.click('text=Add Robot');
+    await window.click('text=Create');
+    await window.waitForSelector('text=Setup New Robot');
     await window.click('text=Scan Ports');
     await window.waitForSelector('text=No Serial devices found');
     await window.screenshot({ path: 'test-results/setupwizard-no-ports.png', fullPage: true });
@@ -69,7 +77,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
       }
     });
 
-    await window.click('text=Setup New Robot');
+    await window.click('text=Robots');
+    await window.waitForSelector('text=Robots');
+    await window.click('text=Add Robot');
+    await window.click('text=Create');
+    await window.waitForSelector('text=Setup New Robot');
 
     // Open Anaconda detection
     await window.click('text=Detect Anaconda');
@@ -95,7 +107,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
         'create-anaconda-env': async (_event: any, name: string) => ({ success: true, code: 0, output: 'created' }),
       });
 
-      await window.click('text=Setup New Robot');
+      await window.click('text=Robots');
+      await window.waitForSelector('text=Robots');
+      await window.click('text=Add Robot');
+      await window.click('text=Create');
+      await window.waitForSelector('text=Setup New Robot');
       await window.click('text=Detect Anaconda');
       // should show create prompt
       await window.waitForSelector('text=Would you like us to create one called');
@@ -112,7 +128,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
         'create-anaconda-env': async (_event: any, name: string) => ({ success: false, code: 1, output: 'fatal: could not create\ndetails...' }),
       });
 
-      await window.click('text=Setup New Robot');
+      await window.click('text=Robots');
+      await window.waitForSelector('text=Robots');
+      await window.click('text=Add Robot');
+      await window.click('text=Create');
+      await window.waitForSelector('text=Setup New Robot');
       await window.click('text=Detect Anaconda');
       await window.waitForSelector('text=Would you like us to create one called');
       await window.click('text=Yes');
@@ -129,7 +149,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
         'check-anaconda': async () => ({ found: true, path: '/home/testuser/miniconda3/envs', envs: [], platform: 'linux', condaAvailable: true, condaVersion: 'conda 23.0.0' }),
       });
 
-      await window.click('text=Setup New Robot');
+      await window.click('text=Robots');
+      await window.waitForSelector('text=Robots');
+      await window.click('text=Add Robot');
+      await window.click('text=Create');
+      await window.waitForSelector('text=Setup New Robot');
       await window.click('text=Detect Anaconda');
       await window.waitForSelector('text=Would you like us to create one called');
       // click the ghost 'No, point to custom Python' button
@@ -165,7 +189,11 @@ test.describe('SetupWizard UI (screenshots)', () => {
       }
     });
 
-    await window.click('text=Setup New Robot');
+    await window.click('text=Robots');
+    await window.waitForSelector('text=Robots');
+    await window.click('text=Add Robot');
+    await window.click('text=Create');
+    await window.waitForSelector('text=Setup New Robot');
     await window.click('text=Scan Ports');
     await window.waitForSelector('text=Port: /dev/ttyUSB0');
 

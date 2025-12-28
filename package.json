@@ -25,7 +25,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@electron-forge/cli": "^7.10.2",
+    "@electron-forge/cli": "^7.8.3",
     "@electron-forge/maker-deb": "^7.10.2",
     "@electron-forge/maker-rpm": "^7.10.2",
     "@electron-forge/maker-squirrel": "^7.10.2",
@@ -46,7 +46,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "typescript": "~4.5.4",
-    "vite": "^5.4.21",
+    "vite": "^7.3.0",
     "vitest": "^4.0.15"
   },
   "dependencies": {
@@ -58,6 +58,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "serialport": "^13.0.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zustand": "^5.0.9"
   }
 }
