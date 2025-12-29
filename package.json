@@ -6,7 +6,6 @@
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start -- -enable-logging --logging-level=0",
-    "browser": "electron . --headless --trace-warnings --remote-debugging-port=9222 --disable-gpu --no-sandbox --disable-software-rasterizer",
     "package": "electron-forge package",
     "prepackage": "npm run build-python",
     "test": "vitest",
