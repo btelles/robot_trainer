@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const currentPage = useUIStore((s: any) => s.currentPage);
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
   const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
+  const setConfigLocal = useUIStore((s: any) => s.setConfigLocal);
 
   React.useEffect(() => {
     const handler = (ev: Event) => {
@@ -42,6 +43,36 @@ const App: React.FC = () => {
     window.addEventListener('robottrainer:navigate', handler as EventListener);
     return () => window.removeEventListener('robottrainer:navigate', handler as EventListener);
   }, [setCurrentPage, setResourceManagerShowForm]);
+
+  // load system config into the UI store on app init
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // @ts-ignore - exposed in preload
+        if (window && (window as any).electronAPI && (window as any).electronAPI.loadSystemSettings) {
+          // load system settings saved via main process ConfigManager
+          const cfg = await (window as any).electronAPI.loadSystemSettings();
+          if (cfg) setConfigLocal(cfg);
+        }
+      } catch (e) {
+        // ignore silently
+      }
+    };
+    load();
+  }, [setConfigLocal]);
+
+  // subscribe to runtime updates broadcast from main when settings change externally
+  useEffect(() => {
+    // @ts-ignore
+    if (window && (window as any).electronAPI && (window as any).electronAPI.onSystemSettingsChanged) {
+      // register listener exposed by preload
+      const off = (window as any).electronAPI.onSystemSettingsChanged((data: any) => {
+        if (data) setConfigLocal(data);
+      });
+      return () => off && off();
+    }
+    return undefined;
+  }, [setConfigLocal]);
 
   // keep local activeTab in sync with store when other parts set currentPage
   useEffect(() => {
