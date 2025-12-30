@@ -25,4 +25,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () =>
       ipcRenderer.removeListener("system-settings-changed", listener);
   },
+  getMigrations: () => ipcRenderer.invoke('get-migrations')
 });

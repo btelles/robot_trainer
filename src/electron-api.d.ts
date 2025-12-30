@@ -9,6 +9,7 @@ interface SerialPort {
 
 interface ElectronAPI {
   scanSerialPorts: () => Promise<SerialPort[]>;
+  getMigrations: () => JSON;
   saveSystemSettings: (settings: any) => Promise<void>;
   loadSystemSettings: () => Promise<any>;
   listPythonPlugins: (options?: {

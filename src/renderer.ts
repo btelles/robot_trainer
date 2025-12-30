@@ -29,10 +29,10 @@ import App from './app.tsx';
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { migrate } from "./db/migrate";
 
-createRoot(document.getElementById('root')!).render(
-  createElement(StrictMode, null,
-    createElement(App)
-  )
-)
-
+migrate().then(() => {
+  createRoot(document.getElementById("root")!).render(
+    createElement(StrictMode, null, createElement(App))
+  );
+});

@@ -7,6 +7,7 @@ import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
 import runPythonScanner from './lib/python_scanner';
 import ConfigManager from './lib/config_manager';
+import migrations from './db/migrations.json';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -30,6 +31,9 @@ const setupIpcHandlers = () => {
     } catch (e) {
       console.error('Error forwarding external config change to renderers:', e);
     }
+  });
+  ipcMain.handle('get-migrations', async () => {
+    return migrations;
   });
   ipcMain.handle('scan-serial-ports', async () => {
     try {
