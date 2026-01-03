@@ -1,19 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import Card from '../ui/Card';
 import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
 import { ChevronRight, CheckCircle } from '../icons';
 import useUIStore from '../lib/uiStore';
-
-interface SerialPort {
-  path: string;
-  manufacturer: string;
-  serialNumber: string;
-  productId?: string;
-  vendorId?: string;
-  pnpId?: string;
-}
 
 const AccordionItem = ({ title, isOpen, onToggle, status, children }: any) => {
   return (
@@ -81,7 +69,6 @@ export const SetupWizard: React.FC = () => {
     setCondaStatus('loading');
     try {
       const res = await window.electronAPI.checkAnaconda();
-      debugger;
       setCondaResult(res);
       if (res.found) {
         setCondaStatus('complete');
@@ -127,7 +114,6 @@ export const SetupWizard: React.FC = () => {
       const res = await window.electronAPI.installMiniconda();
       if (res.success) {
         // Re-check
-        console.log('Miniconda installed, re-checking...');
         await checkConda();
       } else {
         setCondaError(res.error || 'Installation failed');
@@ -190,7 +176,7 @@ export const SetupWizard: React.FC = () => {
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-semibold text-gray-900">Welcome!</h2>
         <p className="text-gray-500 mt-1">
-          Let's setup your environment. Training robots takes a few steps (and some time), but with your permission, we'll handle it for you.
+          Let's setup your environment. This takes a few steps (and some time), but with your permission, we'll handle it all for you.
         </p>
       </div>
 
@@ -203,7 +189,7 @@ export const SetupWizard: React.FC = () => {
         >
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Miniconda is a minimal installer for conda. It is a small, <a href="https://anaconda.com">enterprise-grade package manager for Python</a>.
+              Miniconda is a minimal installer for conda. It is a small, <a href="https://anaconda.com" target="_blank" rel="noopener noreferrer">enterprise-grade package manager for Python</a>.
             </p>
             {condaStatus === 'complete' ? (
               <div className="text-sm text-green-600">
@@ -280,8 +266,8 @@ export const SetupWizard: React.FC = () => {
           onClick={() => {
             if (step === 1) {
               setResourceManagerShowForm(false);
-                setCurrentPage('robots');
-                setShowSetupWizard(false);
+              setCurrentPage('robots');
+              setShowSetupWizard(false);
             } else {
               setStep((s) => Math.max(1, s - 1));
             }

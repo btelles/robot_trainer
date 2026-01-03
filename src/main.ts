@@ -217,8 +217,6 @@ const setupIpcHandlers = () => {
       if (!condaExec) {
         const userDataPath = app.getPath('userData');
         const candidate = path.join(userDataPath, 'miniconda3', 'bin', 'conda');
-        console.log('User data path:', userDataPath);
-        console.log('Candidate:', candidate);
         try {
           const st = await fs.stat(candidate);
           if (st.isFile()) condaExec = candidate;
@@ -226,12 +224,10 @@ const setupIpcHandlers = () => {
           // ignore
         }
       }
-      console.log('CondaExec path:', condaExec);
 
       if (condaExec) {
         // Use conda run to ensure the environment is activated for the install
         return await new Promise((resolve) => {
-          console.log('Installing lerobot via conda run', condaExec);
           const child_pip_install = spawn(condaExec, ['install', '-n', 'robot_trainer', 'pip'], { stdio: ['ignore', 'pipe', 'pipe'] });
           let out = '';
           let err = '';
@@ -241,16 +237,13 @@ const setupIpcHandlers = () => {
             if (code !== 0) {
               resolve({ success: false, output: out + err });
             }
-            console.log(code, err);
             const child_lerobot_install = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
             child_lerobot_install.stdout.on('data', (d: any) => out += d);
             child_lerobot_install.stderr.on('data', (d: any) => err += d);
             child_lerobot_install.on('close', (code) => {
-              console.log(code, err);
               return ({ success: code === 0, output: out + err });
             });
             child_lerobot_install.on('error', (e) => {
-              console.log(e);
               return ({ success: false, output: String(e) });
             });
           });
@@ -261,12 +254,10 @@ const setupIpcHandlers = () => {
       let pythonPath = systemSettings.pythonPath;
       if (!pythonPath) {
         const userDataPath = app.getPath('userData');
-        console.log('PYTHON_PATH 249:', userDataPath);
         const envPath = path.join(userDataPath, 'miniconda3', 'envs', 'robot_trainer');
         pythonPath = process.platform === 'win32' ? path.join(envPath, 'python.exe') : path.join(envPath, 'bin', 'python');
       }
 
-      console.log('Python path for lerobot install:', pythonPath);
       return await new Promise((resolve) => {
         const child = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
         let out = '';
@@ -786,7 +777,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  //  mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };
 
 const setupAppMenu = () => {

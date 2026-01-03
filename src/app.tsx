@@ -31,6 +31,26 @@ const App: React.FC = () => {
   const showSetupWizard = useUIStore((s: any) => s.showSetupWizard);
   const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
 
+  const checkConda = async () => {
+    try {
+      const res = await window.electronAPI.checkAnaconda();
+      if (!res.found) {
+        return false;
+      }
+      // Check env
+      const hasEnv = res.envs.some((e: any) => e.name === 'robot_trainer');
+      if (!hasEnv) {
+        return false;
+      }
+      // Check LeRobot
+      const lr = await window.electronAPI.checkLerobot();
+      return !lr.installed;
+    } catch (e) {
+      return false;
+    }
+  };
+
+
   React.useEffect(() => {
     const handler = (ev: Event) => {
       try {
@@ -51,43 +71,58 @@ const App: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // The main process may request the renderer to load/save settings via
-        // the drizzle-backed users table. Register handlers to respond.
-        // @ts-ignore - exposed in preload
-        if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestLoadSystemSettings) {
-          // listen for main asking to load settings; reply using drizzle
-          (window as any).electronAPI.onRequestLoadSystemSettings(async () => {
-            try {
-              const cfg = await configResource.getAll();
-              (window as any).electronAPI.replyLoadSystemSettings(cfg);
-              setConfigLocal(cfg);
-              // If config missing python/conductor settings, show the setup wizard
+        const cfg = await configResource.getAll();
+        (window as any).electronAPI.replyLoadSystemSettings(cfg);
+        setConfigLocal(cfg);
+        // If config missing python/conductor settings, show the setup wizard
+        try {
+          if (!cfg || !cfg.condaRoot || !cfg.pythonPath) {
+            setShowSetupWizard(true);
+          }
+          const condaOk = await checkConda();
+          if (!condaOk) {
+            setShowSetupWizard(true);
+          }
+          // The main process may request the renderer to load/save settings via
+          // the drizzle-backed users table. Register handlers to respond.
+          // @ts-ignore - exposed in preload
+          if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestLoadSystemSettings) {
+            // listen for main asking to load settings; reply using drizzle
+            (window as any).electronAPI.onRequestLoadSystemSettings(async () => {
               try {
+                const cfg = await configResource.getAll();
+                (window as any).electronAPI.replyLoadSystemSettings(cfg);
+                setConfigLocal(cfg);
+                // If config missing python/conductor settings, show the setup wizard
                 if (!cfg || !cfg.condaRoot || !cfg.pythonPath) {
                   setShowSetupWizard(true);
                 }
+                const condaOk = await checkConda();
+                if (!condaOk) {
+                  setShowSetupWizard(true);
+                }
               } catch (e) {
-                // ignore
+                (window as any).electronAPI.replyLoadSystemSettings({});
               }
-            } catch (e) {
-              (window as any).electronAPI.replyLoadSystemSettings({});
-            }
-          });
-        }
-        if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestSaveSystemSettings) {
-          (window as any).electronAPI.onRequestSaveSystemSettings(async (settings: any) => {
-            try {
-              await configResource.setAll(settings);
-              (window as any).electronAPI.replySaveSystemSettings({ success: true, settings });
-              setConfigLocal(settings);
-            } catch (e) {
-              (window as any).electronAPI.replySaveSystemSettings({ success: false, error: String(e) });
-            }
-          });
+            });
+          }
+          if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestSaveSystemSettings) {
+            (window as any).electronAPI.onRequestSaveSystemSettings(async (settings: any) => {
+              try {
+                await configResource.setAll(settings);
+                (window as any).electronAPI.replySaveSystemSettings({ success: true, settings });
+                setConfigLocal(settings);
+              } catch (e) {
+                (window as any).electronAPI.replySaveSystemSettings({ success: false, error: String(e) });
+              }
+            });
+          }
+        } catch (e) {
+          // ignore silently
         }
       } catch (e) {
-        // ignore silently
-      }
+        (window as any).electronAPI.replyLoadSystemSettings({});
+      };
     };
     load();
   }, [setConfigLocal]);
