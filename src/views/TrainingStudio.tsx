@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ML_LIBRARIES, DEFAULT_CONFIG } from '../constants/mockData';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { Play, Zap } from '../icons';
+import { VideoPlayer } from '../ui/VideoPlayer';
 
 export const TrainingStudio: React.FC = () => {
   const [recording, setRecording] = useState(false);
@@ -24,6 +25,46 @@ export const TrainingStudio: React.FC = () => {
     }
   };
 
+  const [simRunning, setSimRunning] = useState(false);
+  const [simUrl, setSimUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const offStopped = (window as any).electronAPI?.onSimulationStopped
+      ? (window as any).electronAPI.onSimulationStopped(() => {
+          setSimRunning(false);
+          setSimUrl(null);
+        })
+      : null;
+
+    return () => {
+      if (offStopped) offStopped();
+    };
+  }, []);
+
+  const startSimulation = async () => {
+    try {
+      // @ts-ignore
+      const res = await (window as any).electronAPI?.startSimulation();
+      if (res && res.ok !== false) {
+        setSimRunning(true);
+        if (res.wsUrl) setSimUrl(res.wsUrl);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const stopSimulation = async () => {
+    try {
+      // @ts-ignore
+      await (window as any).electronAPI?.stopSimulation();
+    } catch (e) {
+      // ignore
+    }
+    setSimRunning(false);
+    setSimUrl(null);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <header className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
@@ -41,6 +82,9 @@ export const TrainingStudio: React.FC = () => {
           </select>
           <Button variant="primary">
             <Play className="h-4 w-4 mr-2" /> Train Policy
+          </Button>
+          <Button onClick={() => simRunning ? stopSimulation() : startSimulation()}>
+            {simRunning ? 'Stop Simulation' : 'Start Simulation'}
           </Button>
         </div>
       </header>
@@ -75,7 +119,13 @@ export const TrainingStudio: React.FC = () => {
 
         <div className="flex-1 bg-gray-100 p-6 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <Card className="aspect-video bg-black flex items-center justify-center relative overflow-hidden group" />
+            <div className="aspect-video bg-black flex items-center justify-center relative overflow-hidden group rounded-md overflow-hidden">
+              {simUrl ? (
+                <VideoPlayer url={simUrl} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white">Simulation Preview</div>
+              )}
+            </div>
             <Card className="aspect-video bg-black flex items-center justify-center" />
           </div>
 

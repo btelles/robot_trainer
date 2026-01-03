@@ -7,6 +7,7 @@ import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
 import useUIStore from "./lib/uiStore";
+import { configResource } from './db/resources';
 
 
 import { Home, Activity, Cpu, Robot, Zap, Layout, Settings } from './icons';
@@ -27,6 +28,8 @@ const App: React.FC = () => {
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
   const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const setConfigLocal = useUIStore((s: any) => s.setConfigLocal);
+  const showSetupWizard = useUIStore((s: any) => s.showSetupWizard);
+  const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
 
   React.useEffect(() => {
     const handler = (ev: Event) => {
@@ -48,11 +51,39 @@ const App: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        // The main process may request the renderer to load/save settings via
+        // the drizzle-backed users table. Register handlers to respond.
         // @ts-ignore - exposed in preload
-        if (window && (window as any).electronAPI && (window as any).electronAPI.loadSystemSettings) {
-          // load system settings saved via main process ConfigManager
-          const cfg = await (window as any).electronAPI.loadSystemSettings();
-          if (cfg) setConfigLocal(cfg);
+        if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestLoadSystemSettings) {
+          // listen for main asking to load settings; reply using drizzle
+          (window as any).electronAPI.onRequestLoadSystemSettings(async () => {
+            try {
+              const cfg = await configResource.getAll();
+              (window as any).electronAPI.replyLoadSystemSettings(cfg);
+              setConfigLocal(cfg);
+              // If config missing python/conductor settings, show the setup wizard
+              try {
+                if (!cfg || !cfg.condaRoot || !cfg.pythonPath) {
+                  setShowSetupWizard(true);
+                }
+              } catch (e) {
+                // ignore
+              }
+            } catch (e) {
+              (window as any).electronAPI.replyLoadSystemSettings({});
+            }
+          });
+        }
+        if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestSaveSystemSettings) {
+          (window as any).electronAPI.onRequestSaveSystemSettings(async (settings: any) => {
+            try {
+              await configResource.setAll(settings);
+              (window as any).electronAPI.replySaveSystemSettings({ success: true, settings });
+              setConfigLocal(settings);
+            } catch (e) {
+              (window as any).electronAPI.replySaveSystemSettings({ success: false, error: String(e) });
+            }
+          });
         }
       } catch (e) {
         // ignore silently
@@ -73,6 +104,18 @@ const App: React.FC = () => {
     }
     return undefined;
   }, [setConfigLocal]);
+
+  // listen for main menu -> open setup wizard
+  useEffect(() => {
+    // @ts-ignore
+    if (window && (window as any).electronAPI && (window as any).electronAPI.onOpenSetupWizard) {
+      const off = (window as any).electronAPI.onOpenSetupWizard(() => {
+        setShowSetupWizard(true);
+      });
+      return () => off && off();
+    }
+    return undefined;
+  }, [setShowSetupWizard]);
 
   // keep local activeTab in sync with store when other parts set currentPage
   useEffect(() => {
@@ -132,6 +175,16 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-hidden relative">
           {renderContent()}
+          {showSetupWizard && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-md max-w-4xl w-full mx-4 p-4 shadow-xl">
+                <SetupWizard />
+                <div className="mt-3 text-right">
+                  <button className="text-sm text-gray-600" onClick={() => setShowSetupWizard(false)}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

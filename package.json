@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate && tsc >> /dev/null || node ./dist/src/db/compile_migrations.js",
     "test:playwright": "npm run db:generate && npm run package && npx playwright test",
     "make": "electron-forge make",
-    "build-python": "cd src/python && pyinstaller --onefile --name robot_trainer_py main.py --distpath dist --workpath build/pyinstaller --specpath build/pyinstaller_spec",
+    "build-python": "cd src/python && pyinstaller --onefile --name robot_trainer_py main.py --distpath dist --workpath build/pyinstaller --specpath build/pyinstaller_spec && pyinstaller --onefile --name simulate simulate.py --distpath dist --workpath build/pyinstaller --specpath build/pyinstaller_spec",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
@@ -36,6 +36,7 @@
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^5.1.2",
@@ -53,6 +54,7 @@
     "@serialport/bindings-cpp": "^13.0.1",
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-react-swc": "^4.2.2",
+    "bufferutil": "^4.1.0",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
@@ -63,6 +65,8 @@
     "serialport": "^13.0.0",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
+    "utf-8-validate": "^6.0.6",
+    "ws": "^8.18.3",
     "zustand": "^5.0.9"
   }
 }

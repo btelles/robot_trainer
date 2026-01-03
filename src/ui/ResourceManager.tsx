@@ -62,16 +62,15 @@ export const ResourceManager: React.FC<Props> = ({
       console.error(`Fields were not defined in ResourceManager for table ${table.name}`);
       return fields;
     }
-    if (!table || !table.columns) {
+    if (!table) {
       console.error(`Could not find columns for table ${table.name}`);
       return [];
     }
-    return Object.keys(table.columns)
-      .filter((k) => k !== "id")
+    return Object.keys(table)
+      .filter((k) => k !== "id" && k !== "enableRLS")
       .map((k) => ({ name: k, label: k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) }));
   }, [fields, table]);
 
-  console.log('inferredFields', inferredFields);
   const [form, setForm] = useState<any>(emptyFromFields(inferredFields));
   const showForm = useUIStore((s: any) => s.resourceManagerShowForm);
   const setShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);

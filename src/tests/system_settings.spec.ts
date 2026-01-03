@@ -3,9 +3,20 @@ import { test } from './fixtures';
 
 test.describe('System Settings integration with ConfigManager IPC', () => {
   test('saves settings successfully', async ({ window, setIpcHandlers, electronApp }) => {
-    await setIpcHandlers({
-      'load-system-settings': async () => ({ pythonPath: '', venvPath: '', extraPath: '', envVars: [] }),
-      'save-system-settings': async (_event: any, settings: any) => ({ ok: true }),
+    await setIpcHandlers({});
+    // Register renderer-side listener to respond to main's request
+    await window.evaluate(() => {
+      // @ts-ignore
+      window.electronAPI.onRequestLoadSystemSettings(() => {
+        // @ts-ignore
+        window.electronAPI.replyLoadSystemSettings({ pythonPath: '', venvPath: '', extraPath: '', envVars: [] });
+      });
+      // @ts-ignore
+      window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+        // pretend save OK
+        // @ts-ignore
+        window.electronAPI.replySaveSystemSettings({ success: true, settings });
+      });
     });
 
     await window.click('text=System Settings');
@@ -15,9 +26,19 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
   });
 
   test('shows error when save fails', async ({ window, setIpcHandlers }) => {
-    await setIpcHandlers({
-      'load-system-settings': async () => ({}),
-      'save-system-settings': async () => { throw new Error('disk full'); },
+    await setIpcHandlers({});
+    await window.evaluate(() => {
+      // @ts-ignore
+      window.electronAPI.onRequestLoadSystemSettings(() => {
+        // @ts-ignore
+        window.electronAPI.replyLoadSystemSettings({});
+      });
+      // @ts-ignore
+      window.electronAPI.onRequestSaveSystemSettings(() => {
+        // simulate failure
+        // @ts-ignore
+        window.electronAPI.replySaveSystemSettings({ success: false, error: 'disk full' });
+      });
     });
 
     await window.click('text=System Settings');
@@ -27,8 +48,13 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
   });
 
   test('handles malformed settings on load gracefully', async ({ window, setIpcHandlers }) => {
-    await setIpcHandlers({
-      'load-system-settings': async () => { throw new Error('malformed'); },
+    await setIpcHandlers({});
+    await window.evaluate(() => {
+      // @ts-ignore
+      window.electronAPI.onRequestLoadSystemSettings(() => {
+        // @ts-ignore
+        window.electronAPI.replyLoadSystemSettings(null);
+      });
     });
 
     await window.click('text=System Settings');
@@ -38,9 +64,18 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
   });
 
   test('reacts to external settings change event', async ({ window, setIpcHandlers, electronApp }) => {
-    await setIpcHandlers({
-      'load-system-settings': async () => ({ pythonPath: '/initial', venvPath: '', extraPath: '', envVars: [] }),
-      'save-system-settings': async () => ({ ok: true }),
+    await setIpcHandlers({});
+    await window.evaluate(() => {
+      // @ts-ignore
+      window.electronAPI.onRequestLoadSystemSettings(() => {
+        // @ts-ignore
+        window.electronAPI.replyLoadSystemSettings({ pythonPath: '/initial', venvPath: '', extraPath: '', envVars: [] });
+      });
+      // @ts-ignore
+      window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+        // @ts-ignore
+        window.electronAPI.replySaveSystemSettings({ success: true, settings });
+      });
     });
 
     await window.click('text=System Settings');

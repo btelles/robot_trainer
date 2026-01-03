@@ -11,15 +11,9 @@ const RobotFields = [
 ];
 
 const RobotsView: React.FC = () => {
-  const renderForm = ({ onCancel }: { onCancel: () => void }) => {
-    return (
-      <SetupWizard />
-    );
-  };
-
   return (
     <div className="p-6">
-      <ResourceManager title="Robots" table={robotsTable} renderForm={renderForm} />
+      <ResourceManager title="Robots" table={robotsTable} />
     </div>
   );
 };

@@ -2,6 +2,27 @@ import { expect } from '@playwright/test';
 import { test } from './fixtures';
 
 test.describe('SetupWizard UI (screenshots)', () => {
+  test.beforeEach(async ({ window }) => {
+    // default renderer-side handlers used during tests to reply to main
+    await window.evaluate(() => {
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.onRequestSaveSystemSettings) {
+        // @ts-ignore
+        window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+          // @ts-ignore
+          window.electronAPI.replySaveSystemSettings({ success: true, settings });
+        });
+      }
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
+        // @ts-ignore
+        window.electronAPI.onRequestLoadSystemSettings(() => {
+          // @ts-ignore
+          window.electronAPI.replyLoadSystemSettings({});
+        });
+      }
+    });
+  });
   test('serial ports scanning and selection states', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({
       'scan-serial-ports': async () => {
@@ -56,111 +77,98 @@ test.describe('SetupWizard UI (screenshots)', () => {
     await window.screenshot({ path: 'test-results/setupwizard-no-ports.png', fullPage: true });
   });
 
-  test('anaconda detection and confirm python path modal', async ({ window, setIpcHandlers }) => {
+  test('Environment setup flow', async ({ window, setIpcHandlers }) => {
+    // Initial state: nothing found
     await setIpcHandlers({
+      'check-anaconda': async () => ({ found: false, path: null, envs: [], platform: 'linux' }),
+      'install-miniconda': async () => ({ success: true, path: '/home/user/miniconda3' }),
+      'create-anaconda-env': async () => ({ success: true, code: 0, output: 'created' }),
+      'install-lerobot': async () => ({ success: true, output: 'installed' }),
+      'check-lerobot': async () => ({ installed: false }),
+      'save-system-settings': async () => ({ success: true }),
       'scan-serial-ports': async () => [],
-      'list-python-plugins': async () => {
-        return { robots: [], teleoperators: [] }
-      },
-      'check-anaconda': async () => {
-        return {
-          found: true,
-          path: '/home/testuser/miniconda3/envs',
-          envs: [{ name: 'base', pythonPath: '/home/testuser/miniconda3/envs/base/bin/python' }],
-          platform: 'linux',
-          condaAvailable: true,
-          condaVersion: 'conda 23.0.0'
-        };
-      },
-      'save-robot-config': async () => {
-        return { ok: true };
-      }
     });
 
+    // register renderer-side reply handlers for main->renderer settings requests
+    await window.evaluate(() => {
+      // @ts-ignore
+      window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+        // @ts-ignore
+        window.electronAPI.replySaveSystemSettings({ success: true, settings });
+      });
+      // @ts-ignore
+      window.electronAPI.onRequestLoadSystemSettings(() => {
+        // @ts-ignore
+        window.electronAPI.replyLoadSystemSettings({});
+      });
+    });
+
+    // Navigate to Setup
     await window.click('text=Robots');
     await window.waitForSelector('text=Robots');
     await window.click('text=Add Robot');
     await window.click('text=Create');
     await window.waitForSelector('text=Setup New Robot');
 
-    // Open Anaconda detection
-    await window.click('text=Detect Anaconda');
-    await window.waitForSelector('text=Detected Anaconda');
-    await window.screenshot({ path: 'test-results/setupwizard-anaconda-detected.png', fullPage: true });
+    // Step 1: Install Miniconda
+    // Accordion item 1 should be open
+    await window.click('text=Install Miniconda');
 
-    // Click 'Use this environment' which will open confirm modal
-    await window.click('text=Use this environment');
-    await window.waitForSelector('text=Confirm');
-    await window.screenshot({ path: 'test-results/setupwizard-confirm-python-modal.png', fullPage: true });
+    // Mock check-anaconda to return found after install (simulating re-check)
+    // Note: In a real test we might need to update the handler before the click or use a mutable mock
+    // For simplicity here we assume the handler returns different values on subsequent calls or we update it
+    // But setIpcHandlers replaces handlers.
+    // The UI calls checkAnaconda immediately after installMiniconda returns.
+    // So we need the handler to be ready.
+    // Let's use a mutable state in the handler.
 
-    // Confirm to save python path
-    await window.click('button:has-text("Confirm")');
-    // After confirming the success message should appear
-    await window.waitForSelector('text=Saved Python path');
-    await window.screenshot({ path: 'test-results/setupwizard-anaconda-saved.png', fullPage: true });
-  });
+    let condaFound = false;
+    let envCreated = false;
 
-  test.describe('Create Anaconda env flow', () => {
-    test('clicking Yes and creating env succeeds', async ({ window, setIpcHandlers }) => {
-      await setIpcHandlers({
-        'check-anaconda': async () => ({ found: true, path: '/home/testuser/miniconda3/envs', envs: [], platform: 'linux', condaAvailable: true, condaVersion: 'conda 23.0.0' }),
-        'create-anaconda-env': async (_event: any, name: string) => ({ success: true, code: 0, output: 'created' }),
-      });
-
-      await window.click('text=Robots');
-      await window.waitForSelector('text=Robots');
-      await window.click('text=Add Robot');
-      await window.click('text=Create');
-      await window.waitForSelector('text=Setup New Robot');
-      await window.click('text=Detect Anaconda');
-      // should show create prompt
-      await window.waitForSelector('text=Would you like us to create one called');
-      await window.click('text=Yes');
-      // after success we show success message
-      await window.waitForSelector('text=Successfully created the Anaconda environment');
-      // new env should be present in list
-      await window.waitForSelector('text=robot_trainer');
+    await setIpcHandlers({
+      'check-anaconda': async () => {
+        if (!condaFound) return { found: false, path: null, envs: [], platform: 'linux' };
+        if (!envCreated) return { found: true, path: '/home/user/miniconda3', envs: [], platform: 'linux' };
+        return {
+          found: true,
+          path: '/home/user/miniconda3',
+          envs: [{ name: 'robot_trainer', pythonPath: '/home/user/miniconda3/envs/robot_trainer/bin/python' }],
+          platform: 'linux'
+        };
+      },
+      'install-miniconda': async () => {
+        condaFound = true;
+        return { success: true, path: '/home/user/miniconda3' };
+      },
+      'create-anaconda-env': async () => {
+        envCreated = true;
+        return { success: true, code: 0, output: 'created' };
+      },
+      'install-lerobot': async () => ({ success: true, output: 'installed' }),
+      'save-system-settings': async () => ({ success: true }),
+      'scan-serial-ports': async () => [],
     });
 
-    test('clicking Yes and creating env fails shows toast with full log', async ({ window, setIpcHandlers }) => {
-      await setIpcHandlers({
-        'check-anaconda': async () => ({ found: true, path: '/home/testuser/miniconda3/envs', envs: [], platform: 'linux', condaAvailable: true, condaVersion: 'conda 23.0.0' }),
-        'create-anaconda-env': async (_event: any, name: string) => ({ success: false, code: 1, output: 'fatal: could not create\ndetails...' }),
-      });
+    // Retry click if needed or just wait
+    // The initial check ran on mount with condaFound=false.
+    // We click Install.
+    await window.click('text=Install Miniconda');
 
-      await window.click('text=Robots');
-      await window.waitForSelector('text=Robots');
-      await window.click('text=Add Robot');
-      await window.click('text=Create');
-      await window.waitForSelector('text=Setup New Robot');
-      await window.click('text=Detect Anaconda');
-      await window.waitForSelector('text=Would you like us to create one called');
-      await window.click('text=Yes');
-      // toast with the output should appear
-      await window.waitForSelector('text=fatal: could not create');
-      // dismiss
-      await window.click('text=Dismiss');
-      // ensure toast gone
-      await expect(window.locator('text=fatal: could not create')).toHaveCount(0);
-    });
+    // Wait for Step 1 complete
+    await window.waitForSelector('text=Miniconda/Anaconda detected at:');
 
-    test('clicking No navigates to system settings', async ({ window, setIpcHandlers }) => {
-      await setIpcHandlers({
-        'check-anaconda': async () => ({ found: true, path: '/home/testuser/miniconda3/envs', envs: [], platform: 'linux', condaAvailable: true, condaVersion: 'conda 23.0.0' }),
-      });
+    // Step 2: Create Env
+    // Accordion 2 should be open now
+    await window.click('text=Create Environment');
+    await window.waitForSelector('text=Environment robot_trainer is ready');
 
-      await window.click('text=Robots');
-      await window.waitForSelector('text=Robots');
-      await window.click('text=Add Robot');
-      await window.click('text=Create');
-      await window.waitForSelector('text=Setup New Robot');
-      await window.click('text=Detect Anaconda');
-      await window.waitForSelector('text=Would you like us to create one called');
-      // click the ghost 'No, point to custom Python' button
-      await window.click('text=No, point to custom Python');
-      // Should navigate to System Settings
-      await window.waitForSelector('text=System Settings');
-    });
+    // Step 3: Install LeRobot
+    await window.click('text=Install LeRobot');
+    await window.waitForSelector('text=LeRobot installed successfully');
+
+    // Next Step should be enabled
+    await window.click('text=Next Step');
+    await window.waitForSelector('text=Scan Ports');
   });
 
   test('save configuration advances to calibration page', async ({ window, setIpcHandlers }) => {
@@ -178,12 +186,15 @@ test.describe('SetupWizard UI (screenshots)', () => {
         return {
           found: true,
           path: '/home/testuser/miniconda3/envs',
-          envs: [{ name: 'base', pythonPath: '/home/testuser/miniconda3/envs/base/bin/python' }],
+          envs: [{ name: 'robot_trainer', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' }],
           platform: 'linux',
           condaAvailable: true,
           condaVersion: 'conda 23.0.0'
         };
       },
+      'install-lerobot': async () => ({ success: true, output: 'installed' }),
+      'check-lerobot': async () => ({ installed: false }),
+      'save-system-settings': async () => ({ success: true }),
       'save-robot-config': async () => {
         return { ok: true };
       }
@@ -194,6 +205,12 @@ test.describe('SetupWizard UI (screenshots)', () => {
     await window.click('text=Add Robot');
     await window.click('text=Create');
     await window.waitForSelector('text=Setup New Robot');
+
+    // Complete Environment Setup
+    await window.click('text=Install LeRobot');
+    await window.waitForSelector('text=LeRobot installed successfully');
+    await window.click('text=Next Step');
+
     await window.click('text=Scan Ports');
     await window.waitForSelector('text=Port: /dev/ttyUSB0');
 

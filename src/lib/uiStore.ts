@@ -8,6 +8,8 @@ type UIState = {
     setCurrentPage: (p: string) => void;
     resourceManagerShowForm: boolean;
     setResourceManagerShowForm: (v: boolean) => void;
+    showSetupWizard: boolean;
+    setShowSetupWizard: (v: boolean) => void;
     config: JSONObject;
     setConfig: (cfg: JSONObject) => void;
     // update the local store without triggering a save
@@ -19,6 +21,8 @@ const useUIStore = create<UIState>((set) => ({
     setCurrentPage: (p: string) => set(() => ({ currentPage: p })),
     resourceManagerShowForm: false,
     setResourceManagerShowForm: (v: boolean) => set(() => ({ resourceManagerShowForm: v })),
+    showSetupWizard: false,
+    setShowSetupWizard: (v: boolean) => set(() => ({ showSetupWizard: v })),
     config: {},
     setConfig: (cfg: JSONObject) => set(() => ({ config: cfg })),
     setConfigLocal: (cfg: JSONObject) => set(() => ({ config: cfg })),
