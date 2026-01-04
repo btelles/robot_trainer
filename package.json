@@ -8,7 +8,6 @@
     "start": "npx drizzle-kit generate && npm run db:generate && electron-forge start -- -enable-logging --logging-level=0",
     "package": "electron-forge package",
     "download-ffmpeg": "node scripts/download_ffmpeg.js",
-    "prepackage": "npm run build-python && npm run download-ffmpeg",
     "test": "vitest",
     "db:generate": "drizzle-kit generate && tsc >> /dev/null || node ./dist/src/db/compile_migrations.js",
     "test:playwright": "npm run db:generate && npm run package && npx playwright test",

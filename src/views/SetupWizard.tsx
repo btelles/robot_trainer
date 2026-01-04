@@ -3,7 +3,9 @@ import Button from '../ui/Button';
 import { ChevronRight, CheckCircle } from '../icons';
 import useUIStore from '../lib/uiStore';
 
-const AccordionItem = ({ title, isOpen, onToggle, status, children }: any) => {
+const AccordionItem = ({ title, isOpen, onToggle, status, children, output }: any) => {
+  const [showDetails, setShowDetails] = useState(false);
+
   return (
     <div className="border rounded-md mb-2 overflow-hidden">
       <div
@@ -23,6 +25,21 @@ const AccordionItem = ({ title, isOpen, onToggle, status, children }: any) => {
       {isOpen && (
         <div className="p-3 border-t bg-white">
           {children}
+          {output && (
+            <div className="mt-4 border-t pt-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowDetails(!showDetails); }}
+                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+              >
+                {showDetails ? 'Hide Details' : 'See Details'}
+              </button>
+              {showDetails && (
+                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap max-h-48 font-mono">
+                  {output}
+                </pre>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -39,10 +56,12 @@ export const SetupWizard: React.FC = () => {
   const [condaStatus, setCondaStatus] = useState<'pending' | 'loading' | 'complete' | 'error'>('pending');
   const [condaResult, setCondaResult] = useState<any>(null);
   const [condaError, setCondaError] = useState<string | null>(null);
+  const [condaOutput, setCondaOutput] = useState<string | null>(null);
 
   // Step 2: Env
   const [envStatus, setEnvStatus] = useState<'pending' | 'loading' | 'complete' | 'error'>('pending');
   const [envError, setEnvError] = useState<string | null>(null);
+  const [envOutput, setEnvOutput] = useState<string | null>(null);
 
   // Step 3: LeRobot
   const [lerobotStatus, setLerobotStatus] = useState<'pending' | 'loading' | 'complete' | 'error'>('pending');
@@ -58,6 +77,24 @@ export const SetupWizard: React.FC = () => {
   // Initial check
   useEffect(() => {
     checkConda();
+  }, []);
+
+  // Listen for output events
+  useEffect(() => {
+    const off1 = window.electronAPI.onInstallMinicondaOutput((data) => {
+      setCondaOutput((prev) => (prev || '') + data);
+    });
+    const off2 = window.electronAPI.onCreateAnacondaEnvOutput((data) => {
+      setEnvOutput((prev) => (prev || '') + data);
+    });
+    const off3 = window.electronAPI.onInstallLerobotOutput((data) => {
+      setLerobotOutput((prev) => (prev || '') + data);
+    });
+    return () => {
+      off1();
+      off2();
+      off3();
+    };
   }, []);
 
   // auto-close modal when all steps complete
@@ -115,8 +152,10 @@ export const SetupWizard: React.FC = () => {
   const handleInstallMiniconda = async () => {
     setCondaStatus('loading');
     setCondaError(null);
+    setCondaOutput(null);
     try {
       const res = await window.electronAPI.installMiniconda();
+      if (res.output) setCondaOutput(res.output);
       if (res.success) {
         // Re-check
         await checkConda();
@@ -133,8 +172,10 @@ export const SetupWizard: React.FC = () => {
   const handleCreateEnv = async () => {
     setEnvStatus('loading');
     setEnvError(null);
+    setEnvOutput(null);
     try {
       const res = await window.electronAPI.createAnacondaEnv('robot_trainer');
+      if (res.output) setEnvOutput(res.output);
       if (res.success) {
         setEnvStatus('complete');
         setExpandedItem(3);
@@ -160,11 +201,12 @@ export const SetupWizard: React.FC = () => {
   const handleInstallLerobot = async () => {
     setLerobotStatus('loading');
     setLerobotError(null);
+    setLerobotOutput(null);
     try {
       const res = await window.electronAPI.installLerobot();
+      if (res.output) setLerobotOutput(res.output);
       if (res.success) {
         setLerobotStatus('complete');
-        setLerobotOutput(res.output || 'Installed successfully');
         setExpandedItem(null); // All done
       } else {
         setLerobotError(res.error || res.output || 'Installation failed');
@@ -191,6 +233,7 @@ export const SetupWizard: React.FC = () => {
           isOpen={expandedItem === 1}
           onToggle={() => setExpandedItem(expandedItem === 1 ? null : 1)}
           status={condaStatus}
+          output={condaOutput}
         >
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
@@ -219,6 +262,7 @@ export const SetupWizard: React.FC = () => {
           isOpen={expandedItem === 2}
           onToggle={() => setExpandedItem(expandedItem === 2 ? null : 2)}
           status={envStatus}
+          output={envOutput}
         >
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
@@ -244,6 +288,7 @@ export const SetupWizard: React.FC = () => {
           isOpen={expandedItem === 3}
           onToggle={() => setExpandedItem(expandedItem === 3 ? null : 3)}
           status={lerobotStatus}
+          output={lerobotOutput}
         >
           <div className="space-y-3">
             <p className="text-sm text-gray-600">

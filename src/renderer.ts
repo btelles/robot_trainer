@@ -35,4 +35,6 @@ migrate().then(() => {
   createRoot(document.getElementById("root")!).render(
     createElement(StrictMode, null, createElement(App))
   );
+}).catch(err => {
+  console.error("Migration failed:", err);
 });

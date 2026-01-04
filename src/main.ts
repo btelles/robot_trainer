@@ -199,11 +199,22 @@ const setupIpcHandlers = () => {
         args = [installerPath, '-b', '-p', installPath];
       }
 
+      let outputLog = '';
       await new Promise<void>((resolve, reject) => {
-        const child = spawn(cmd, args, { stdio: 'inherit' });
+        const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+        child.stdout.on('data', (d: any) => {
+          const chunk = d.toString();
+          outputLog += chunk;
+          mainWindow?.webContents.send('install-miniconda-output', chunk);
+        });
+        child.stderr.on('data', (d: any) => {
+          const chunk = d.toString();
+          outputLog += chunk;
+          mainWindow?.webContents.send('install-miniconda-output', chunk);
+        });
         child.on('close', (code) => {
           if (code === 0) resolve();
-          else reject(new Error(`Miniconda installation failed with code ${code}`));
+          else reject(new Error(`Miniconda installation failed with code ${code}\n${outputLog}`));
         });
         child.on('error', reject);
       });
@@ -215,7 +226,7 @@ const setupIpcHandlers = () => {
       systemSettings = { ...systemSettings, condaRoot: installPath };
       mainWindow?.webContents.send('system-settings-changed', systemSettings);
 
-      return { success: true, path: installPath };
+      return { success: true, path: installPath, output: outputLog };
     } catch (error: any) {
       console.error('Error installing Miniconda:', error);
       return { success: false, error: error.message };
@@ -236,15 +247,31 @@ const setupIpcHandlers = () => {
           const child_pip_install = spawn(condaExec, ['install', '-n', 'robot_trainer', 'pip'], { stdio: ['ignore', 'pipe', 'pipe'] });
           let out = '';
           let err = '';
-          child_pip_install.stdout.on('data', (d: any) => out += d);
-          child_pip_install.stderr.on('data', (d: any) => err += d);
+          child_pip_install.stdout.on('data', (d: any) => {
+            const s = d.toString();
+            out += s;
+            mainWindow?.webContents.send('install-lerobot-output', s);
+          });
+          child_pip_install.stderr.on('data', (d: any) => {
+            const s = d.toString();
+            err += s;
+            mainWindow?.webContents.send('install-lerobot-output', s);
+          });
           child_pip_install.on('close', (code) => {
             if (code !== 0) {
               resolve({ success: false, output: out + err });
             }
             const child_lerobot_install = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[all]'], { stdio: ['ignore', 'pipe', 'pipe'] });
-            child_lerobot_install.stdout.on('data', (d: any) => out += d);
-            child_lerobot_install.stderr.on('data', (d: any) => err += d);
+            child_lerobot_install.stdout.on('data', (d: any) => {
+              const s = d.toString();
+              out += s;
+              mainWindow?.webContents.send('install-lerobot-output', s);
+            });
+            child_lerobot_install.stderr.on('data', (d: any) => {
+              const s = d.toString();
+              err += s;
+              mainWindow?.webContents.send('install-lerobot-output', s);
+            });
             child_lerobot_install.on('close', (code) => {
               return ({ success: code === 0, output: out + err });
             });
@@ -268,8 +295,16 @@ const setupIpcHandlers = () => {
         const child = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot[all]'], { stdio: ['ignore', 'pipe', 'pipe'] });
         let out = '';
         let err = '';
-        child.stdout.on('data', (d: any) => out += d);
-        child.stderr.on('data', (d: any) => err += d);
+        child.stdout.on('data', (d: any) => {
+          const s = d.toString();
+          out += s;
+          mainWindow?.webContents.send('install-lerobot-output', s);
+        });
+        child.stderr.on('data', (d: any) => {
+          const s = d.toString();
+          err += s;
+          mainWindow?.webContents.send('install-lerobot-output', s);
+        });
         child.on('close', (code) => resolve({ success: code === 0, output: out + err }));
         child.on('error', (e) => resolve({ success: false, output: String(e) }));
       });
@@ -529,8 +564,16 @@ const setupIpcHandlers = () => {
         const child = spawn(chosen!, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
         let out = '';
         let err = '';
-        child.stdout.on('data', (chunk) => out += chunk.toString());
-        child.stderr.on('data', (chunk) => err += chunk.toString());
+        child.stdout.on('data', (chunk) => {
+          const s = chunk.toString();
+          out += s;
+          mainWindow?.webContents.send('create-anaconda-env-output', s);
+        });
+        child.stderr.on('data', (chunk) => {
+          const s = chunk.toString();
+          err += s;
+          mainWindow?.webContents.send('create-anaconda-env-output', s);
+        });
         child.on('close', (code) => {
           const success = code === 0;
           (async () => {
@@ -768,7 +811,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };
 
 const setupAppMenu = () => {

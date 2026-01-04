@@ -29,7 +29,7 @@ interface ElectronAPI {
   createAnacondaEnv: (
     name: string
   ) => Promise<{ success: boolean; code: number; output: string }>;
-  installMiniconda: () => Promise<{ success: boolean; path?: string; error?: string }>;
+  installMiniconda: () => Promise<{ success: boolean; path?: string; error?: string; output?: string }>;
   installLerobot: () => Promise<{ success: boolean; output?: string; error?: string }>;
   checkLerobot: () => Promise<{ installed: boolean }>;
   saveRobotConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
@@ -45,6 +45,9 @@ interface ElectronAPI {
   replyLoadSystemSettings: (settings: any) => void;
   replySaveSystemSettings: (result: any) => void;
   onSystemSettingsChanged: (cb: (data: any) => void) => () => void;
+  onInstallMinicondaOutput: (cb: (data: string) => void) => () => void;
+  onCreateAnacondaEnvOutput: (cb: (data: string) => void) => () => void;
+  onInstallLerobotOutput: (cb: (data: string) => void) => () => void;
 }
 
 declare global {

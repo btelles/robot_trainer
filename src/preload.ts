@@ -62,5 +62,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const listener = (_: any, data: any) => cb(data);
     ipcRenderer.on('simulation-stopped', listener);
     return () => ipcRenderer.removeListener('simulation-stopped', listener);
+  },
+  onInstallMinicondaOutput: (cb: (data: string) => void) => {
+    const listener = (_: any, data: string) => cb(data);
+    ipcRenderer.on('install-miniconda-output', listener);
+    return () => ipcRenderer.removeListener('install-miniconda-output', listener);
+  },
+  onCreateAnacondaEnvOutput: (cb: (data: string) => void) => {
+    const listener = (_: any, data: string) => cb(data);
+    ipcRenderer.on('create-anaconda-env-output', listener);
+    return () => ipcRenderer.removeListener('create-anaconda-env-output', listener);
+  },
+  onInstallLerobotOutput: (cb: (data: string) => void) => {
+    const listener = (_: any, data: string) => cb(data);
+    ipcRenderer.on('install-lerobot-output', listener);
+    return () => ipcRenderer.removeListener('install-lerobot-output', listener);
   }
 });
