@@ -34,7 +34,7 @@ interface ElectronAPI {
   checkLerobot: () => Promise<{ installed: boolean }>;
   saveRobotConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
   setConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
-  startSimulation: () => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
+  startSimulation: (config?: any) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
   stopSimulation: () => Promise<{ ok: boolean; message?: string }>;
   startCamera: (devicePath: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
   startRTSP: (url: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;

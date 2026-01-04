@@ -48,7 +48,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   getMigrations: () => ipcRenderer.invoke('get-migrations')
   ,
-  startSimulation: () => ipcRenderer.invoke('start-simulation'),
+  startSimulation: (config?: any) => ipcRenderer.invoke('start-simulation', config),
   stopSimulation: () => ipcRenderer.invoke('stop-simulation'),
   startCamera: (devicePath: string) => ipcRenderer.invoke('start-camera', devicePath),
   startRTSP: (url: string) => ipcRenderer.invoke('start-rtsp', url),

@@ -1,6 +1,9 @@
 import { spawn, ChildProcess } from 'child_process';
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
+import { app } from 'electron';
+import path from 'path';
+import fs from 'fs';
 
 export class VideoManager extends EventEmitter {
   private ffmpegProcess: ChildProcess | null = null;
@@ -37,13 +40,43 @@ export class VideoManager extends EventEmitter {
     }
   }
 
-  public async startSimulation(command: string, scriptPath: string, recordingPath: string) {
+  private getFfmpegPath(): string {
+    const platform = process.platform;
+    let platformDir = '';
+    let ext = '';
+    if (platform === 'win32') {
+      platformDir = 'win';
+      ext = '.exe';
+    } else if (platform === 'darwin') {
+      platformDir = 'mac';
+    } else if (platform === 'linux') {
+      platformDir = 'linux';
+    }
+
+    const possiblePaths = [];
+    
+    if (app.isPackaged) {
+       possiblePaths.push(path.join(process.resourcesPath, 'bin', platformDir, `ffmpeg${ext}`));
+    } else {
+       possiblePaths.push(path.join(app.getAppPath(), 'src', 'bin', platformDir, `ffmpeg${ext}`));
+    }
+
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        return p;
+      }
+    }
+
+    console.warn('Bundled ffmpeg not found, falling back to system PATH');
+    return 'ffmpeg';
+  }
+
+  public async startSimulation(command: string, args: string[], recordingPath: string) {
     this.stopAll();
     this.startServer();
 
     // 1. Spawn Python Simulation
     // It expects to write raw RGB24 640x480 frames to stdout
-    const args = scriptPath ? [scriptPath] : [];
     this.pythonProcess = spawn(command, args, {
       stdio: ['ignore', 'pipe', 'inherit'] // stdout piped
     });
@@ -78,7 +111,7 @@ export class VideoManager extends EventEmitter {
       'pipe:1' // Write to stdout
     ];
 
-    this.ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+    this.ffmpegProcess = spawn(this.getFfmpegPath(), ffmpegArgs, {
       stdio: ['pipe', 'pipe', 'inherit'] // stdin from python, stdout to WS
     });
 
@@ -125,7 +158,7 @@ export class VideoManager extends EventEmitter {
       'pipe:1'
     ];
 
-    this.ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+    this.ffmpegProcess = spawn(this.getFfmpegPath(), ffmpegArgs, {
       stdio: ['ignore', 'pipe', 'inherit']
     });
 
@@ -163,7 +196,7 @@ export class VideoManager extends EventEmitter {
       'pipe:1'
     ];
 
-    this.ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+    this.ffmpegProcess = spawn(this.getFfmpegPath(), ffmpegArgs, {
       stdio: ['ignore', 'pipe', 'inherit']
     });
 

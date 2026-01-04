@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const setConfigLocal = useUIStore((s: any) => s.setConfigLocal);
   const showSetupWizard = useUIStore((s: any) => s.showSetupWizard);
   const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
+  const setShowSetupWizardForced = useUIStore((s: any) => s.setShowSetupWizardForced);
 
   const checkConda = async () => {
     try {
@@ -70,6 +71,8 @@ const App: React.FC = () => {
   // load system config into the UI store on app init
   useEffect(() => {
     const load = async () => {
+      // mark app as not idle while initial load is in progress
+      try { (window as any).__appIdle = false; } catch (e) {}
       try {
         const cfg = await configResource.getAll();
         (window as any).electronAPI.replyLoadSystemSettings(cfg);
@@ -123,6 +126,8 @@ const App: React.FC = () => {
       } catch (e) {
         (window as any).electronAPI.replyLoadSystemSettings({});
       };
+        // Indicate that initial app bootstrap is complete and app is idle
+        try { (window as any).__appIdle = true; } catch (e) {}
     };
     load();
   }, [setConfigLocal]);
@@ -145,12 +150,14 @@ const App: React.FC = () => {
     // @ts-ignore
     if (window && (window as any).electronAPI && (window as any).electronAPI.onOpenSetupWizard) {
       const off = (window as any).electronAPI.onOpenSetupWizard(() => {
+        // mark as forced-open so background checks won't auto-close
         setShowSetupWizard(true);
+        setShowSetupWizardForced(true);
       });
       return () => off && off();
     }
     return undefined;
-  }, [setShowSetupWizard]);
+  }, [setShowSetupWizard, setShowSetupWizardForced]);
 
   // keep local activeTab in sync with store when other parts set currentPage
   useEffect(() => {
@@ -215,7 +222,7 @@ const App: React.FC = () => {
               <div className="bg-white rounded-md max-w-4xl w-full mx-4 p-4 shadow-xl">
                 <SetupWizard />
                 <div className="mt-3 text-right">
-                  <button className="text-sm text-gray-600" onClick={() => setShowSetupWizard(false)}>Close</button>
+                  <button className="text-sm text-gray-600" onClick={() => { setShowSetupWizard(false); setShowSetupWizardForced(false);}}>Close</button>
                 </div>
               </div>
             </div>

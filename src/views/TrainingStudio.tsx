@@ -44,7 +44,7 @@ export const TrainingStudio: React.FC = () => {
   const startSimulation = async () => {
     try {
       // @ts-ignore
-      const res = await (window as any).electronAPI?.startSimulation();
+      const res = await (window as any).electronAPI?.startSimulation(config);
       if (res && res.ok !== false) {
         setSimRunning(true);
         if (res.wsUrl) setSimUrl(res.wsUrl);

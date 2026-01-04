@@ -52,6 +52,8 @@ export const SetupWizard: React.FC = () => {
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
   const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
+  const showSetupWizardForced = useUIStore((s: any) => s.showSetupWizardForced);
+  const setShowSetupWizardForced = useUIStore((s: any) => s.setShowSetupWizardForced);
 
   // Initial check
   useEffect(() => {
@@ -61,9 +63,12 @@ export const SetupWizard: React.FC = () => {
   // auto-close modal when all steps complete
   useEffect(() => {
     if (condaStatus === 'complete' && envStatus === 'complete' && lerobotStatus === 'complete') {
-      try { setShowSetupWizard(false); } catch (e) { }
+      try {
+        // if the wizard was explicitly opened (menu), don't auto-close
+        if (!showSetupWizardForced) setShowSetupWizard(false);
+      } catch (e) { }
     }
-  }, [condaStatus, envStatus, lerobotStatus, setShowSetupWizard]);
+  }, [condaStatus, envStatus, lerobotStatus, setShowSetupWizard, showSetupWizardForced]);
 
   const checkConda = async () => {
     setCondaStatus('loading');
@@ -268,6 +273,7 @@ export const SetupWizard: React.FC = () => {
               setResourceManagerShowForm(false);
               setCurrentPage('robots');
               setShowSetupWizard(false);
+              try { setShowSetupWizardForced(false); } catch (e) {}
             } else {
               setStep((s) => Math.max(1, s - 1));
             }

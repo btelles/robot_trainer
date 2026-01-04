@@ -39,37 +39,72 @@ const loadSystemSettings = async () => {
 
     // Wait for renderer reply, with timeout fallback to existing file-based config
     const data = await new Promise<any>((resolve) => {
-      let handled = false;
-      const to = setTimeout(async () => {
-        if (handled) return;
-        handled = true;
-        try {
-          const p = path.join(app.getPath('userData'), 'system-settings.json');
-          const fileData = await fs.readFile(p, 'utf8');
-          resolve(JSON.parse(fileData));
-        } catch (_e) {
-          resolve({});
-        }
-      }, 2000);
-
       ipcMain.once('reply-load-system-settings', (_ev, payload) => {
-        if (handled) return;
-        handled = true;
         resolve(payload || {});
       });
     });
 
     systemSettings = data || {};
   } catch (e) {
-    // fallback to file-based if anything goes wrong
+    throw("Could not load the system data from the renderer's IndexedDb.")
+  }
+};
+
+// Resolve a usable `conda` executable path. Returns an absolute path, 'conda' if
+// available on PATH, or null if none found.
+const resolveCondaExecutable = async (): Promise<string | null> => {
+  // 1) If the user has configured a condaRoot in systemSettings, prefer that.
+  if (systemSettings && systemSettings.condaRoot) {
+    const candidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
     try {
-      const p = path.join(app.getPath('userData'), 'system-settings.json');
-      const data = await fs.readFile(p, 'utf8');
-      systemSettings = JSON.parse(data);
-    } catch (_e) {
-      systemSettings = {};
+      const st = await fs.stat(candidate as any);
+      if (st.isFile()) return candidate;
+    } catch (e) {
+      // ignore
     }
   }
+
+  // 2) Check for a Miniconda we manage under app userData
+  try {
+    const userDataPath = app.getPath('userData');
+    const candidate = path.join(userDataPath, 'miniconda3', 'bin', 'conda');
+    const st = await fs.stat(candidate as any);
+    if (st.isFile()) return candidate;
+  } catch (e) {
+    // ignore
+  }
+
+  // 3) Check common home locations for conda installer directories
+  try {
+    const home = app.getPath('home') || os.homedir();
+    const common = [
+      path.join(home, 'miniconda3', 'bin', 'conda'),
+      path.join(home, 'anaconda3', 'bin', 'conda'),
+      '/opt/miniconda3/bin/conda',
+      '/opt/anaconda3/bin/conda'
+    ];
+    for (const c of common) {
+      try {
+        const st = await fs.stat(c as any);
+        if (st.isFile()) return c;
+      } catch (e) {
+        // ignore
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // 4) Finally, check if `conda` is available on PATH
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const result = spawnSync('conda', ['--version'], { encoding: 'utf8' });
+    if (result && result.status === 0) return 'conda';
+  } catch (e) {
+    // not available
+  }
+
+  return null;
 };
 
 // Handle Serial port port scanning from renderer process
@@ -87,19 +122,12 @@ const setupIpcHandlers = () => {
 
         // Wait for renderer reply (with timeout fallback to file write)
         const result = await new Promise<any>((resolve) => {
-          let done = false;
-          const to = setTimeout(async () => {
+          let done = false
+          const to = setTimeout(() => {
             if (done) return;
             done = true;
-            try {
-              const p = path.join(app.getPath('userData'), 'system-settings.json');
-              systemSettings = { ...systemSettings, ...settings };
-              await fs.writeFile(p, JSON.stringify(systemSettings, null, 2), 'utf8');
-              mainWindow?.webContents.send('system-settings-changed', systemSettings);
-              resolve({ success: true });
-            } catch (e) {
-              resolve({ success: false, error: String(e) });
-            }
+            clearTimeout(to);
+            resolve({ success: false, error: 'renderer timeout' });
           }, 2000);
 
           ipcMain.once('reply-save-system-settings', (_ev, payload) => {
@@ -117,11 +145,8 @@ const setupIpcHandlers = () => {
         return result;
       }
 
-      // No mainWindow – fallback to file
-      const p = path.join(app.getPath('userData'), 'system-settings.json');
-      systemSettings = { ...systemSettings, ...settings };
-      await fs.writeFile(p, JSON.stringify(systemSettings, null, 2), 'utf8');
-      return { success: true };
+      // No mainWindow – cannot persist settings without renderer
+      return { success: false, error: 'no main window to persist settings' };
     } catch (e) {
       console.error(e);
       throw e;
@@ -202,28 +227,8 @@ const setupIpcHandlers = () => {
       // Prefer using `conda run -n robot_trainer` if we have a conda root saved
       const { spawn } = await import('node:child_process');
 
-      // Try to use conda from systemSettings.condaRoot or from userData/miniconda3
-      let condaExec: string | null = null;
-      if (systemSettings && systemSettings.condaRoot) {
-        const candidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
-        try {
-          const st = await fs.stat(candidate);
-          if (st.isFile()) condaExec = candidate;
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (!condaExec) {
-        const userDataPath = app.getPath('userData');
-        const candidate = path.join(userDataPath, 'miniconda3', 'bin', 'conda');
-        try {
-          const st = await fs.stat(candidate);
-          if (st.isFile()) condaExec = candidate;
-        } catch (e) {
-          // ignore
-        }
-      }
+      // Determine conda executable using shared helper
+      const condaExec: string | null = await resolveCondaExecutable();
 
       if (condaExec) {
         // Use conda run to ensure the environment is activated for the install
@@ -237,7 +242,7 @@ const setupIpcHandlers = () => {
             if (code !== 0) {
               resolve({ success: false, output: out + err });
             }
-            const child_lerobot_install = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
+            const child_lerobot_install = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[all]'], { stdio: ['ignore', 'pipe', 'pipe'] });
             child_lerobot_install.stdout.on('data', (d: any) => out += d);
             child_lerobot_install.stderr.on('data', (d: any) => err += d);
             child_lerobot_install.on('close', (code) => {
@@ -259,7 +264,8 @@ const setupIpcHandlers = () => {
       }
 
       return await new Promise((resolve) => {
-        const child = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
+        // Install the full set of extras to ensure optional packages are present
+        const child = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot[all]'], { stdio: ['ignore', 'pipe', 'pipe'] });
         let out = '';
         let err = '';
         child.stdout.on('data', (d: any) => out += d);
@@ -276,35 +282,59 @@ const setupIpcHandlers = () => {
     try {
       const { spawn } = await import('node:child_process');
 
-      // Prefer conda run if available (ensures correct env activation)
-      let condaExec: string | null = null;
-      if (systemSettings && systemSettings.condaRoot) {
-        const candidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
-        try {
-          const st = await fs.stat(candidate);
-          if (st.isFile()) condaExec = candidate;
-        } catch (e) {
-          // ignore
-        }
-      }
+      // extras we expect to be present (declared by lerobot metadata)
+      const extras = [
+        'dynamixel','gamepad','hopejr','lekiwi','reachy2','kinematics','intelrealsense',
+        'smolvla','xvla','hilserl','async','dev','test','video_benchmark','aloha',
+        'pusht','phone','libero','metaworld','sarm'
+      ];
 
-      if (!condaExec) {
-        const userDataPath = app.getPath('userData');
-        const candidate = path.join(userDataPath, 'miniconda3', 'bin', 'conda');
-        try {
-          const st = await fs.stat(candidate);
-          if (st.isFile()) condaExec = candidate;
-        } catch (e) {
-          // ignore
-        }
-      }
+      // Build a small Python check script that inspects lerobot's distribution metadata
+      const checkScript = [
+        "import json,sys",
+        "try:",
+        "  import importlib.metadata as md",
+        "except Exception:",
+        "  try:",
+        "    import importlib_metadata as md",
+        "  except Exception as e:",
+        "    print(json.dumps({'ok':False,'error':str(e)}))",
+        "    sys.exit(1)",
+        "try:",
+        "  dist = md.distribution('lerobot')",
+        "  declared = dist.metadata.get_all('Provides-Extra') or []",
+        `  missing = [e for e in ${JSON.stringify(extras)} if e not in declared]`,
+        "  res={'ok': len(missing)==0, 'missing': missing, 'error': None}",
+        "except Exception as e:",
+        "  res={'ok':False,'missing':[], 'error': str(e)}",
+        "print(json.dumps(res))",
+        "sys.exit(0 if res['ok'] and not res['error'] else 1)"
+      ].join('; ');
+
+      // Prefer conda run if available (ensures correct env activation)
+      const condaExec: string | null = await resolveCondaExecutable();
+
+      const runCheck = (cmd: string, args: string[]) => {
+        return new Promise<any>((resolve) => {
+          const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+          let out = '';
+          let err = '';
+          if (child.stdout) child.stdout.on('data', (d: any) => out += d.toString());
+          if (child.stderr) child.stderr.on('data', (d: any) => err += d.toString());
+          child.on('close', (code) => {
+            try {
+              const parsed = JSON.parse(out || '{}');
+              resolve({ installed: Boolean(parsed.ok), missing: parsed.missing || [], output: out + err, error: parsed.error || (code === 0 ? null : `exit:${code}`) });
+            } catch (e) {
+              resolve({ installed: code === 0, missing: [], output: out + err, error: String(e) });
+            }
+          });
+          child.on('error', () => resolve({ installed: false, missing: [], output: err }));
+        });
+      };
 
       if (condaExec) {
-        return await new Promise((resolve) => {
-          const child = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', 'import lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
-          child.on('close', (code) => resolve({ installed: code === 0 }));
-          child.on('error', () => resolve({ installed: false }));
-        });
+        return await runCheck(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', checkScript]);
       }
 
       // Fallback: directly call env python if known
@@ -315,13 +345,9 @@ const setupIpcHandlers = () => {
         pythonPath = process.platform === 'win32' ? path.join(envPath, 'python.exe') : path.join(envPath, 'bin', 'python');
       }
 
-      return await new Promise((resolve) => {
-        const child = spawn(pythonPath, ['-c', 'import lerobot'], { stdio: 'ignore' });
-        child.on('close', (code) => resolve({ installed: code === 0 }));
-        child.on('error', () => resolve({ installed: false }));
-      });
+      return await runCheck(pythonPath, ['-c', checkScript]);
     } catch (e) {
-      return { installed: false };
+      return { installed: false, missing: [], error: String(e) };
     }
   });
 
@@ -445,49 +471,56 @@ const setupIpcHandlers = () => {
       const home = app.getPath('home') || os.homedir();
       // Build candidate conda executables, preferring any configured condaRoot and app userData
       const userData = app.getPath('userData');
-      const candidates: string[] = [];
 
-      // If system had a condaRoot configured, prefer its conda executable
-      if (systemSettings && systemSettings.condaRoot) {
-        const sysCandidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
-        candidates.push(sysCandidate);
-      }
-
-      // Prefer conda under app userData (where we install Miniconda)
-      if (process.platform === 'win32') {
-        candidates.push(path.join(userData, 'Miniconda3', 'Scripts', 'conda.exe'));
-      } else {
-        candidates.push(path.join(userData, 'miniconda3', 'bin', 'conda'));
-      }
-
-      // Then check common home locations
-      if (process.platform === 'win32') {
-        candidates.push(path.join(home, 'Anaconda3', 'condabin', 'conda.bat'));
-        candidates.push(path.join(home, 'Anaconda3', 'Scripts', 'conda.exe'));
-        candidates.push(path.join(home, 'Miniconda3', 'condabin', 'conda.bat'));
-        candidates.push(path.join(home, 'Miniconda3', 'Scripts', 'conda.exe'));
-      } else {
-        candidates.push(path.join(home, 'miniconda3', 'bin', 'conda'));
-        candidates.push(path.join(home, 'anaconda3', 'bin', 'conda'));
-        candidates.push('/opt/miniconda3/bin/conda');
-        candidates.push('/opt/anaconda3/bin/conda');
-      }
-
-      // Finally, allow 'conda' on PATH
-      candidates.push('conda');
-
-      // Choose first existing candidate (or 'conda')
+      // Allow helper to short-circuit candidate selection when possible
       let chosen: string | null = null;
-      for (const c of candidates) {
-        if (c === 'conda') { chosen = 'conda'; break; }
-        try {
-          const st = await fs.stat(c);
-          if (st && st.isFile()) { chosen = c; break; }
-        } catch (e) {
-          // ignore
+      const helperConda = await resolveCondaExecutable();
+      if (helperConda) {
+        chosen = helperConda;
+      } else {
+        const candidates: string[] = [];
+
+        // If system had a condaRoot configured, prefer its conda executable
+        if (systemSettings && systemSettings.condaRoot) {
+          const sysCandidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
+          candidates.push(sysCandidate);
         }
+
+        // Prefer conda under app userData (where we install Miniconda)
+        if (process.platform === 'win32') {
+          candidates.push(path.join(userData, 'Miniconda3', 'Scripts', 'conda.exe'));
+        } else {
+          candidates.push(path.join(userData, 'miniconda3', 'bin', 'conda'));
+        }
+
+        // Then check common home locations
+        if (process.platform === 'win32') {
+          candidates.push(path.join(home, 'Anaconda3', 'condabin', 'conda.bat'));
+          candidates.push(path.join(home, 'Anaconda3', 'Scripts', 'conda.exe'));
+          candidates.push(path.join(home, 'Miniconda3', 'condabin', 'conda.bat'));
+          candidates.push(path.join(home, 'Miniconda3', 'Scripts', 'conda.exe'));
+        } else {
+          candidates.push(path.join(home, 'miniconda3', 'bin', 'conda'));
+          candidates.push(path.join(home, 'anaconda3', 'bin', 'conda'));
+          candidates.push('/opt/miniconda3/bin/conda');
+          candidates.push('/opt/anaconda3/bin/conda');
+        }
+
+        // Finally, allow 'conda' on PATH
+        candidates.push('conda');
+
+        // Choose first existing candidate (or 'conda')
+        for (const c of candidates) {
+          if (c === 'conda') { chosen = 'conda'; break; }
+          try {
+            const st = await fs.stat(c);
+            if (st && st.isFile()) { chosen = c; break; }
+          } catch (e) {
+            // ignore
+          }
+        }
+        if (!chosen) chosen = 'conda';
       }
-      if (!chosen) chosen = 'conda';
 
       // Explicitly request python to ensure the env contains binaries
       const args = ['create', '-n', name, 'python', '--yes'];
@@ -577,83 +610,41 @@ const setupIpcHandlers = () => {
   });
 
   // Start a simulation process (spawns Python simulator) and stream frames
-  ipcMain.handle('start-simulation', async () => {
+  ipcMain.handle('start-simulation', async (_event, config: any = {}) => {
     try {
       const id = 'simulation';
       if (videoManagers.has(id)) {
         return { ok: false, message: 'simulation already running' };
       }
+      // Build command/args based on user's system settings and provided config
+      // Prefer conda run -n robot_trainer if we have conda available
+      const condaExec: string | null = await resolveCondaExecutable();
 
-      const candidates = [
-        path.join(process.cwd(), 'src', 'python', 'simulate.py'),
-        path.join(__dirname, '..', 'python', 'simulate.py'),
-        path.join(process.resourcesPath || '', 'simulate.py'),
-      ];
-
-      let scriptPath: string | null = null;
-      for (const c of candidates) {
-        try {
-          const st = await fs.stat(c as any);
-          if (st) {
-            scriptPath = c;
-            break;
-          }
-        } catch (e) {
-          // try next
-        }
+      // Build module args from config (use sensible defaults)
+      const moduleArgs: string[] = [];
+      if (config && typeof config === 'object') {
+        if (config.repo_id) { moduleArgs.push('--repo-id', String(config.repo_id)); }
+        if (config.policy_type) { moduleArgs.push('--policy-type', String(config.policy_type)); }
+        if (config.num_episodes) { moduleArgs.push('--episodes', String(config.num_episodes)); }
+        if (config.fps) { moduleArgs.push('--fps', String(config.fps)); }
       }
 
-      if (!scriptPath) {
-        throw new Error('simulate.py not found');
-      }
+      let command = 'python3';
+      let args: string[] = ['-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
 
-      // Try to find the venv python if in dev mode
-      let pythonExec = 'python3';
-      if (systemSettings.pythonPath) {
-        pythonExec = systemSettings.pythonPath;
-      } else {
-        const venvPython = path.join(process.cwd(), 'src', 'python', '.venv', 'bin', 'python');
-        try {
-          const st = await fs.stat(venvPython);
-          if (st.isFile()) {
-            pythonExec = venvPython;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      // Check for bundled executable (production)
-      // If packaged, the python script might be compiled to an executable
-      // We can check if a 'simulate' binary exists in resources
-      const bundledSim = path.join(process.resourcesPath, 'src', 'python', 'dist', 'simulate');
-      try {
-        const st = await fs.stat(bundledSim);
-        if (st.isFile()) {
-          pythonExec = bundledSim;
-          scriptPath = ''; // Executable doesn't need script path arg
-        }
-      } catch (e) {
-        // ignore
+      if (condaExec) {
+        // Use conda run to ensure correct env activation
+        command = condaExec;
+        args = ['run', '-n', 'robot_trainer', 'python', '-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
+      } else if (systemSettings && systemSettings.pythonPath) {
+        command = systemSettings.pythonPath;
+        args = ['-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
       }
 
       const vm = new VideoManager(9999);
       const recordingPath = path.join(app.getPath('userData'), `simulation_${Date.now()}.mp4`);
 
-      const args = scriptPath ? [scriptPath] : [];
-      // If using python executable with script, args is [scriptPath]
-      // If using bundled executable, args is []
-      // VideoManager.startSimulation takes (pythonPath, scriptPath, ...)
-      // We need to adjust VideoManager to handle this or just pass empty scriptPath if it's an executable
-
-      // Let's assume VideoManager expects a command and args.
-      // Currently it is: spawn(pythonPath, [scriptPath], ...)
-      // We should update VideoManager to take args array instead of just scriptPath
-
-      // For now, let's just pass scriptPath as is. If it's empty, spawn might fail if we pass ['']
-      // So let's update VideoManager first to be more flexible.
-
-      await vm.startSimulation(pythonExec, scriptPath, recordingPath);
+      await vm.startSimulation(command, args, recordingPath);
       videoManagers.set(id, vm);
 
       return { ok: true, wsUrl: 'ws://localhost:9999' };
@@ -777,7 +768,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 };
 
 const setupAppMenu = () => {

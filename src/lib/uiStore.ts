@@ -10,6 +10,10 @@ type UIState = {
     setResourceManagerShowForm: (v: boolean) => void;
     showSetupWizard: boolean;
     setShowSetupWizard: (v: boolean) => void;
+    // when true the setup wizard was explicitly opened (e.g. via menu)
+    // and should not be auto-closed by background checks
+    showSetupWizardForced: boolean;
+    setShowSetupWizardForced: (v: boolean) => void;
     config: JSONObject;
     setConfig: (cfg: JSONObject) => void;
     // update the local store without triggering a save
@@ -23,6 +27,8 @@ const useUIStore = create<UIState>((set) => ({
     setResourceManagerShowForm: (v: boolean) => set(() => ({ resourceManagerShowForm: v })),
     showSetupWizard: false,
     setShowSetupWizard: (v: boolean) => set(() => ({ showSetupWizard: v })),
+    showSetupWizardForced: false,
+    setShowSetupWizardForced: (v: boolean) => set(() => ({ showSetupWizardForced: v })),
     config: {},
     setConfig: (cfg: JSONObject) => set(() => ({ config: cfg })),
     setConfigLocal: (cfg: JSONObject) => set(() => ({ config: cfg })),

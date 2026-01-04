@@ -16,7 +16,7 @@ async function main() {
   const recordingPath = path.join(projectRoot, 'src', 'python', 'dist', 'test_recording.mp4');
 
   console.log('Starting VideoManager...');
-  await vm.startSimulation(simulateBin, '', recordingPath);
+  await vm.startSimulation(simulateBin, [], recordingPath);
 
   // simple HTTP server to serve jsmpeg client
   const html = `<!doctype html>
